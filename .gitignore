@@ -6,4 +6,8 @@ __pycache__/
 venv/
 
 DESIGN.md
-
+About.txt
+.vscode
+build/
+dist/
+build.txt
