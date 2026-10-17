@@ -13,7 +13,8 @@ Shortcut Studio is a Windows desktop app that turns a folder of applications int
 - Records each run and folder result in a local SQLite database.
 - Supports Simplified/Traditional Chinese, Japanese, and other Unicode names and paths.
 - Saves each source/target folder pair for future checks.
-- Recreates missing shortcuts and detects newly added application folders.
+- Checks one saved library or all saved libraries in a single run.
+- Recreates missing shortcuts, detects newly added application folders, and removes saved shortcuts when their original source folders have been deleted.
 - Provides a List page where saved pairs and their history can be removed without deleting files.
 - Provides a Test button beside each executable candidate so it can be opened before selection.
 - Preserves existing Windows shortcuts unchanged, including their arguments, working directory, icon, and special launcher behavior.

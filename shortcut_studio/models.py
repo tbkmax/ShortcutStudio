@@ -8,6 +8,7 @@ from pathlib import Path
 class ResultStatus(str, Enum):
     CREATED = "created"
     UP_TO_DATE = "up_to_date"
+    REMOVED = "removed"
     NO_EXECUTABLE = "no_executable"
     FAILED = "failed"
     CANCELLED = "cancelled"

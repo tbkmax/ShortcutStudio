@@ -83,6 +83,11 @@ class MainWindow(QMainWindow):
             database_path or local_data / "ShortcutStudio" / "shortcut_studio.db"
         )
         self.worker: ScanWorker | None = None
+        self.check_queue: list[FolderPair] = []
+        self.batch_check_total = 0
+        self.batch_check_completed = 0
+        self.batch_check_unavailable = 0
+        self.batch_check_totals = [0, 0, 0, 0, 0]
         self.folder_rows: dict[Path, FolderRow] = {}
         self.current_choice_folder: Path | None = None
         self.current_candidates: list[Path] = []
@@ -319,9 +324,15 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._title("Check a saved folder pair."))
         layout.addWidget(
             self._body(
-                "Recreate missing shortcuts and process application folders added since the last run."
+                "Recreate missing shortcuts, process new application folders, and remove shortcuts whose source folders are gone."
             )
         )
+        check_all_row = QHBoxLayout()
+        self.check_all_button = self._primary_button("Check all saved libraries")
+        self.check_all_button.clicked.connect(self._check_all_pairs)
+        check_all_row.addWidget(self.check_all_button)
+        check_all_row.addStretch()
+        layout.addLayout(check_all_row)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -632,6 +643,8 @@ class MainWindow(QMainWindow):
     ) -> None:
         self._clear_dynamic_layout(layout)
         pairs = self.database.list_pairs()
+        if for_check and hasattr(self, "check_all_button"):
+            self.check_all_button.setEnabled(bool(pairs))
         if not pairs:
             empty = QFrame()
             empty.setObjectName("card")
@@ -681,6 +694,29 @@ class MainWindow(QMainWindow):
                 "The source or target folder no longer exists. Update the folders or delete this saved pair.",
             )
             return
+        self._launch_workflow(pair.source, pair.target, pair.id, check_only=True)
+
+    def _check_all_pairs(self) -> None:
+        pairs = self.database.list_pairs()
+        if not pairs:
+            QMessageBox.information(
+                self, "No saved libraries", "Start a new library before running a check."
+            )
+            return
+        self.check_queue = [
+            pair for pair in pairs if pair.source.is_dir() and pair.target.is_dir()
+        ]
+        self.batch_check_total = len(pairs)
+        self.batch_check_completed = 0
+        self.batch_check_unavailable = len(pairs) - len(self.check_queue)
+        self.batch_check_totals = [0, 0, 0, 0, 0]
+        if not self.check_queue:
+            self._finish_batch_check()
+            return
+        self._launch_next_batch_check()
+
+    def _launch_next_batch_check(self) -> None:
+        pair = self.check_queue.pop(0)
         self._launch_workflow(pair.source, pair.target, pair.id, check_only=True)
 
     def _delete_pair(self, pair: FolderPair) -> None:
@@ -902,8 +938,13 @@ class MainWindow(QMainWindow):
         total = len(paths)
         self.progress_bar.setRange(0, max(total, 1))
         self.progress_bar.setValue(0)
+        prefix = (
+            f"Library {self.batch_check_completed + 1} of {self.batch_check_total}: "
+            if self.batch_check_total
+            else ""
+        )
         self.progress_caption.setText(
-            f"{total} folder{'s' if total != 1 else ''} found."
+            f"{prefix}{total} folder{'s' if total != 1 else ''} found."
         )
 
     def _folder_started(self, raw_path: str) -> None:
@@ -1022,6 +1063,8 @@ class MainWindow(QMainWindow):
                 row.set_status("No app found", MUTED)
             elif result.status == ResultStatus.UP_TO_DATE:
                 row.set_status("Up to date", GREEN)
+            elif result.status == ResultStatus.REMOVED:
+                row.set_status("Removed", ORANGE)
             else:
                 row.set_status("Failed", RED)
                 row.setToolTip(result.error or "Unknown error")
@@ -1029,18 +1072,27 @@ class MainWindow(QMainWindow):
             1
             for current_row in self.folder_rows.values()
             if current_row.status_label.text()
-            in {"CREATED", "NO APP FOUND", "UP TO DATE", "FAILED"}
+            in {"CREATED", "NO APP FOUND", "UP TO DATE", "REMOVED", "FAILED"}
         )
         self.progress_bar.setValue(completed)
         self.progress_caption.setText(f"Processed {completed} of {len(self.folder_rows)} folders.")
 
     def _workflow_finished(
-        self, created: int, skipped: int, failed: int, up_to_date: int
+        self, created: int, skipped: int, failed: int, up_to_date: int, removed: int
     ) -> None:
+        if self.batch_check_total:
+            values = (created, skipped, failed, up_to_date, removed)
+            self.batch_check_totals = [
+                current + value
+                for current, value in zip(self.batch_check_totals, values)
+            ]
+            self.batch_check_completed += 1
+            return
         self.done_summary.setText(
             f"Created {created} shortcut{'s' if created != 1 else ''}. "
             f"{skipped} folder{'s' if skipped != 1 else ''} had no launch file. "
             f"{up_to_date} already up to date. "
+            f"{removed} obsolete shortcut{'s' if removed != 1 else ''} removed. "
             f"{failed} failed."
         )
         self.pages.setCurrentWidget(self.done_page)
@@ -1051,6 +1103,9 @@ class MainWindow(QMainWindow):
             self._open_folder(self.active_target)
 
     def _fatal_error(self, message: str) -> None:
+        if self.batch_check_total:
+            self.batch_check_unavailable += 1
+            return
         QMessageBox.critical(self, "Could not complete workflow", message)
         self.pages.setCurrentWidget(self.setup_page)
 
@@ -1059,10 +1114,37 @@ class MainWindow(QMainWindow):
         finished_worker = self.sender()
         if finished_worker is self.worker:
             self.worker = None
+            if self.batch_check_total:
+                if self.check_queue:
+                    self._launch_next_batch_check()
+                    return
+                self._finish_batch_check()
+                return
             for button in self.nav_buttons:
                 button.setEnabled(True)
 
+    def _finish_batch_check(self) -> None:
+        created, skipped, failed, up_to_date, removed = self.batch_check_totals
+        unavailable = self.batch_check_unavailable
+        self.done_summary.setText(
+            f"Checked {self.batch_check_completed} of {self.batch_check_total} saved libraries. "
+            f"Created {created} shortcut{'s' if created != 1 else ''}. "
+            f"{skipped} folder{'s' if skipped != 1 else ''} had no launch file. "
+            f"{up_to_date} already up to date. "
+            f"{removed} obsolete shortcut{'s' if removed != 1 else ''} removed. "
+            f"{failed} failed. "
+            f"{unavailable} librar{'ies were' if unavailable != 1 else 'y was'} unavailable."
+        )
+        self.batch_check_total = 0
+        self.batch_check_unavailable = 0
+        self.batch_check_completed = 0
+        self.check_queue.clear()
+        for button in self.nav_buttons:
+            button.setEnabled(True)
+        self.pages.setCurrentWidget(self.done_page)
+
     def _cancel_workflow(self) -> None:
+        self.check_queue.clear()
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.progress_caption.setText("Cancelling…")

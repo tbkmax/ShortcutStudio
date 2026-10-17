@@ -100,7 +100,7 @@ class Database:
         for source_text, target_text, created_at, checked_at in legacy_pairs:
             source = Path(source_text)
             target = Path(target_text)
-            connection.execute(
+            inserted = connection.execute(
                 """
                 INSERT OR IGNORE INTO folder_pairs(
                     source_folder, target_folder, source_key, target_key,
@@ -116,6 +116,8 @@ class Database:
                     checked_at,
                 ),
             )
+            if inserted.rowcount == 0:
+                continue
             pair_row = connection.execute(
                 "SELECT id FROM folder_pairs WHERE source_key = ? AND target_key = ?",
                 (_path_key(source), _path_key(target)),
@@ -272,6 +274,13 @@ class Database:
                     str(shortcut),
                     _now(),
                 ),
+            )
+
+    def delete_pair_item(self, pair_id: int, folder: Path) -> None:
+        with self._connection() as connection:
+            connection.execute(
+                "DELETE FROM pair_items WHERE pair_id = ? AND folder_key = ?",
+                (pair_id, _path_key(folder)),
             )
 
     def touch_pair(self, pair_id: int) -> None:

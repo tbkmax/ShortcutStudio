@@ -9,6 +9,7 @@ from shortcut_studio.database import Database
 from shortcut_studio.models import FolderResult, ResultStatus
 from shortcut_studio.scanner import find_executables, source_folders
 from shortcut_studio.shortcuts import install_launch_item, safe_shortcut_name, shortcut_path
+from shortcut_studio.worker import ScanWorker
 
 
 class ScannerTests(unittest.TestCase):
@@ -136,6 +137,22 @@ class DatabaseTests(unittest.TestCase):
             database.delete_pair(pair.id)
             self.assertEqual(database.list_pairs(), [])
 
+    def test_deletes_saved_pair_item(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            database = Database(root / "pairs.db")
+            source = root / "source"
+            target = root / "target"
+            folder = source / "Removed App"
+            pair, _created = database.get_or_create_pair(source, target)
+            database.save_pair_item(
+                pair.id, folder, folder / "app.exe", target / "Removed App.lnk"
+            )
+
+            database.delete_pair_item(pair.id, folder)
+
+            self.assertEqual(database.list_pair_items(pair.id), [])
+
     def test_migrates_previous_successful_run_to_saved_pair(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             database_path = Path(temporary) / "migration.db"
@@ -191,6 +208,49 @@ class DatabaseTests(unittest.TestCase):
             )
             self.assertTrue(restored.get_setting_bool("open_target_after_completion"))
             self.assertFalse(restored.get_setting_bool("confirm_pair_deletion"))
+
+
+class WorkerTests(unittest.TestCase):
+    def test_check_removes_shortcut_when_saved_source_folder_is_gone(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            target = root / "target"
+            source.mkdir()
+            target.mkdir()
+            removed_folder = source / "Removed App"
+            saved_shortcut = target / "Removed App.lnk"
+            saved_shortcut.write_bytes(b"shortcut")
+            database = Database(root / "worker.db")
+            pair, _created = database.get_or_create_pair(source, target)
+            database.save_pair_item(
+                pair.id,
+                removed_folder,
+                removed_folder / "app.exe",
+                saved_shortcut,
+            )
+            historical_run = database.start_run(source, target)
+            database.save_result(
+                historical_run,
+                FolderResult(
+                    removed_folder,
+                    ResultStatus.CREATED,
+                    removed_folder / "app.exe",
+                    saved_shortcut,
+                ),
+            )
+            database.complete_run(historical_run)
+            totals: list[tuple[int, int, int, int, int]] = []
+            worker = ScanWorker(source, target, database, pair.id, check_only=True)
+            worker.workflow_finished.connect(lambda *values: totals.append(values))
+
+            worker.run()
+
+            self.assertFalse(saved_shortcut.exists())
+            self.assertEqual(database.list_pair_items(pair.id), [])
+            self.assertEqual(totals, [(0, 0, 0, 0, 1)])
+            reopened = Database(root / "worker.db")
+            self.assertEqual(reopened.list_pair_items(pair.id), [])
 
 
 if __name__ == "__main__":

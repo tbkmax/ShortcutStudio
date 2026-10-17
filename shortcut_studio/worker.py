@@ -16,7 +16,7 @@ class ScanWorker(QThread):
     folder_started = pyqtSignal(str)
     choice_required = pyqtSignal(str, list)
     folder_finished = pyqtSignal(object)
-    workflow_finished = pyqtSignal(int, int, int, int)
+    workflow_finished = pyqtSignal(int, int, int, int, int)
     fatal_error = pyqtSignal(str)
 
     def __init__(
@@ -50,13 +50,57 @@ class ScanWorker(QThread):
     def run(self) -> None:
         try:
             folders = source_folders(self.source)
-            self.folders_ready.emit([str(folder) for folder in folders])
+            stale_items = (
+                [
+                    item
+                    for item in self.database.list_pair_items(self.pair_id)
+                    if not item.folder.is_dir()
+                ]
+                if self.check_only
+                else []
+            )
+            displayed_folders = folders + [item.folder for item in stale_items]
+            self.folders_ready.emit([str(folder) for folder in displayed_folders])
             run_id = self.database.start_run(self.source, self.target)
         except Exception as exc:
             self.fatal_error.emit(str(exc))
             return
 
-        created = skipped = failed = up_to_date = 0
+        created = skipped = failed = up_to_date = removed = 0
+        for item in stale_items:
+            if self._cancelled:
+                break
+            self.folder_started.emit(str(item.folder))
+            try:
+                expected_shortcut = shortcut_path(self.target, item.folder.name)
+                if item.shortcut.resolve(strict=False) != expected_shortcut.resolve(
+                    strict=False
+                ):
+                    raise OSError(
+                        "Saved shortcut is outside its expected target location"
+                    )
+                if item.shortcut.exists() or item.shortcut.is_symlink():
+                    item.shortcut.unlink()
+                self.database.delete_pair_item(self.pair_id, item.folder)
+                result = FolderResult(
+                    item.folder,
+                    ResultStatus.REMOVED,
+                    item.executable,
+                    item.shortcut,
+                )
+                removed += 1
+            except Exception as exc:
+                result = FolderResult(
+                    item.folder,
+                    ResultStatus.FAILED,
+                    item.executable,
+                    item.shortcut,
+                    str(exc),
+                )
+                failed += 1
+            self.database.save_result(run_id, result)
+            self.folder_finished.emit(result)
+
         for folder in folders:
             if self._cancelled:
                 break
@@ -108,7 +152,7 @@ class ScanWorker(QThread):
         except Exception as exc:
             self.fatal_error.emit(f"Could not finish database record: {exc}")
             return
-        self.workflow_finished.emit(created, skipped, failed, up_to_date)
+        self.workflow_finished.emit(created, skipped, failed, up_to_date, removed)
 
     def _choose_executable(self, folder: Path) -> Path | None:
         executables = find_executables(folder)
