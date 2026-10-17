@@ -253,5 +253,23 @@ class WorkerTests(unittest.TestCase):
             self.assertEqual(reopened.list_pair_items(pair.id), [])
 
 
+class MainWindowTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        from PyQt6.QtWidgets import QApplication
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_home_page_has_white_check_all_button(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from shortcut_studio.app import MainWindow
+            db_path = Path(temporary) / "ui_test.db"
+            window = MainWindow(database_path=db_path)
+            self.assertTrue(hasattr(window, "home_check_all_button"))
+            self.assertEqual(window.home_check_all_button.text(), "Check all")
+            self.assertEqual(window.home_check_all_button.objectName(), "primaryButton")
+            self.assertTrue(hasattr(window, "home_choose_check_button"))
+            self.assertEqual(window.home_choose_check_button.text(), "Choose pair")
+
+
 if __name__ == "__main__":
     unittest.main()

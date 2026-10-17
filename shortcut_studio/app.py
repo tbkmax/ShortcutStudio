@@ -236,12 +236,15 @@ class MainWindow(QMainWindow):
                 primary=True,
             )
         )
+        self.home_check_all_button = self._primary_button("Check all")
+        self.home_check_all_button.clicked.connect(self._check_all_pairs)
+        self.home_choose_check_button = self._outline_button("Choose pair")
+        self.home_choose_check_button.clicked.connect(self._show_check_page)
         first_row.addWidget(
             self._dashboard_action(
                 "Check",
                 "Restore missing shortcuts and discover newly added application folders.",
-                "Choose pair",
-                self._show_check_page,
+                buttons=[self.home_check_all_button, self.home_choose_check_button],
             )
         )
         layout.addLayout(first_row)
@@ -272,9 +275,10 @@ class MainWindow(QMainWindow):
         self,
         title: str,
         description: str,
-        button_text: str,
-        handler,
+        button_text: str | None = None,
+        handler=None,
         primary: bool = False,
+        buttons: list[QPushButton] | None = None,
     ) -> QFrame:
         card = QFrame()
         card.setObjectName("dashboardCard")
@@ -287,14 +291,19 @@ class MainWindow(QMainWindow):
         description_label = QLabel(description)
         description_label.setObjectName("dashboardCardBody")
         description_label.setWordWrap(True)
-        action = (
-            self._primary_button(button_text)
-            if primary
-            else self._outline_button(button_text)
-        )
-        action.clicked.connect(handler)
         button_row = QHBoxLayout()
-        button_row.addWidget(action)
+        button_row.setSpacing(10)
+        if buttons:
+            for button in buttons:
+                button_row.addWidget(button)
+        elif button_text and handler:
+            action = (
+                self._primary_button(button_text)
+                if primary
+                else self._outline_button(button_text)
+            )
+            action.clicked.connect(handler)
+            button_row.addWidget(action)
         button_row.addStretch()
         card_layout.addWidget(title_label)
         card_layout.addWidget(description_label)
@@ -697,6 +706,8 @@ class MainWindow(QMainWindow):
         self._launch_workflow(pair.source, pair.target, pair.id, check_only=True)
 
     def _check_all_pairs(self) -> None:
+        if self._workflow_active():
+            return
         pairs = self.database.list_pairs()
         if not pairs:
             QMessageBox.information(

@@ -1,5 +1,5 @@
 #### FIX-1: check feature 
-- [ ] add check all button for check in the home page, and it should be white one
+- [x] add check all button for check in the home page, and it should be white one
 
 #### FIX-2: window behavior
 - [ ] let window can hide in tool bar, and left click open right click will show quit
