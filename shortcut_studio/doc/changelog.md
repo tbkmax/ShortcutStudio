@@ -8,6 +8,9 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 ### Added
 
+#### 2026-10-18 - Agent Operating Guidelines (AGENTS.md)
+- Created root [`AGENTS.md`](../../AGENTS.md) defining standard operating procedures, documentation templates usage, mandatory per-folder `doc/` hierarchy, zero-guess target file navigation, and quality assurance checklists for AI agents.
+
 #### 2026-10-17 - Package Documentation Directory
 - Created package documentation directory (`shortcut_studio/doc/`) containing architectural specification, workflow diagrams, changelog, and backlog per engineering standards.
 
