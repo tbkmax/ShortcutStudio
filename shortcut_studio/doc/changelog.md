@@ -57,6 +57,9 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 ### Fixed
 
+#### 2026-10-20 - Build Verification Quoting
+- [`scripts/build.ps1`](../../scripts/build.ps1) now runs [`scripts/verify_build.py`](../../scripts/verify_build.py) as a file so PowerShell preserves the archive check's Python syntax.
+
 #### 2026-10-20 - Packaged Close-to-Tray Visibility
 - [`MainWindow`](../ui/window.py) now locates the bundled icon in PyInstaller's extraction directory, repairs a missing or hidden tray icon, and quits cleanly when Windows has no notification area.
 - [`tests/test_core.py`](../../tests/test_core.py) covers packaged icon resolution, multiple ICO sizes, and close behavior with and without a tray.

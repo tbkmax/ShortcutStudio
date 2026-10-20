@@ -31,19 +31,7 @@ try {
         throw "Build did not create $output"
     }
 
-    $verifyArchive = @'
-import sys
-from PyInstaller.archive.readers import CArchiveReader
-
-archive = CArchiveReader(sys.argv[1])
-entries = {name.replace("/", "\\").lower() for name in archive.toc}
-if "assest\\icon.ico" not in entries:
-    raise SystemExit("Build is missing the runtime tray icon")
-if "icuuc.dll" in entries:
-    raise SystemExit("Build contains a PATH-sourced ICU DLL; remove the conflicting DLL from the bundle")
-print("Verified bundled tray icon and clean Qt dependencies")
-'@
-    & $python -c $verifyArchive $output
+    & $python (Join-Path $PSScriptRoot 'verify_build.py') $output
     if ($LASTEXITCODE -ne 0) {
         throw "Archive verification failed with exit code $LASTEXITCODE"
     }

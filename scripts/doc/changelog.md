@@ -15,6 +15,11 @@
 #### 2026-10-20 - Obsolete Text Build Command
 - Removed `build.txt`, whose command regenerated the spec and could omit required runtime data.
 
+### Fixed
+
+#### 2026-10-20 - PowerShell Archive Verification
+- Moved the Python archive check from an inline `-c` argument into [`verify_build.py`](../verify_build.py), preserving its checks while avoiding PowerShell quote and backslash mangling.
+
 ## Migration and Upgrade Notes
 
 Run `.\scripts\build.ps1` to produce a new EXE. No database migration is required.

@@ -1,18 +1,19 @@
 # Build Script Architecture
 
-The `scripts` folder owns the repeatable Windows EXE build entry point. [`build.ps1`](../build.ps1) invokes the repository [`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) with the local virtual environment and verifies the resulting one-file archive.
+The `scripts` folder owns the repeatable Windows EXE build entry point. [`build.ps1`](../build.ps1) invokes the repository [`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) with the local virtual environment, then runs [`verify_build.py`](../verify_build.py) to inspect the resulting one-file archive.
 
 ## Component Inventory
 
 | Component | File Link | Responsibility | Key Interfaces |
 | :--- | :--- | :--- | :--- |
-| Build command | [`build.ps1`](../build.ps1) | Selects the project environment, runs PyInstaller, and checks the archive. | `.venv\Scripts\python.exe`, `PyInstaller`, `CArchiveReader` |
+| Build command | [`build.ps1`](../build.ps1) | Selects the project environment, runs PyInstaller, and calls archive verification. | `.venv\Scripts\python.exe`, `PyInstaller` |
+| Archive verification | [`verify_build.py`](../verify_build.py) | Confirms the runtime icon is present and the conflicting ICU DLL is absent. | `CArchiveReader`, `main` |
 | Build definition | [`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) | Declares application entrypoint, bundled ICO, windowed EXE, and Windows icon. | `Analysis`, `PYZ`, `EXE` |
 | Runtime icon | [`icon.ico`](../../assest/icon.ico) | Supplies the EXE icon and the runtime window/tray icon. | `assest/icon.ico` archive entry |
 
 ## Ownership and Boundaries
 
-`build.ps1` owns the build environment and verification; the spec owns PyInstaller's file list and EXE settings. The script temporarily limits `PATH` to the virtual environment and Windows directories so unrelated tools cannot supply conflicting DLLs. It restores the caller's `PATH` in `finally`. The script uses `.pyinstaller-build/` for intermediates and writes `dist/Shortcut Studio.exe`.
+`build.ps1` owns the build environment and invokes verification; `verify_build.py` owns the archive checks; the spec owns PyInstaller's file list and EXE settings. The PowerShell script temporarily limits `PATH` to the virtual environment and Windows directories so unrelated tools cannot supply conflicting DLLs. It restores the caller's `PATH` in `finally`. The script uses `.pyinstaller-build/` for intermediates and writes `dist/Shortcut Studio.exe`.
 
 ## Invariants and Safeguards
 
