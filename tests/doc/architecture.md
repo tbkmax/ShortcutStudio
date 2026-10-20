@@ -10,11 +10,11 @@ The `tests` directory contains the `unittest` suite for scanning, shortcut handl
 | Shortcut tests | [`test_core.py`](../test_core.py) | Verify shortcut naming and preservation of existing links. | `ShortcutNameTests` |
 | Database tests | [`test_core.py`](../test_core.py) | Verify pairs, run history, migration, and JSON settings backup. | `DatabaseTests` |
 | Worker tests | [`test_core.py`](../test_core.py) | Verify check cleanup stays inside a temporary target folder. | `WorkerTests` |
-| Window tests | [`test_core.py`](../test_core.py) | Verify framing, controls, tray hide/restore, and icon lookup. | `MainWindowTests` |
+| Window tests | [`test_core.py`](../test_core.py) | Verify framing, controls, tray hide/restore, icon lookup, worker completion, and sequential batch checks. | `MainWindowTests` |
 
 ## Ownership and Boundaries
 
-Each test creates its own temporary filesystem or database fixture. `MainWindowTests.setUpClass()` owns a `QApplication` instance for widget tests. Tray availability is patched in the hide/close tests so their result does not depend on the host notification area. The packaged icon test checks source ICO sizes and the `_MEIPASS` path rule; the PyInstaller build is checked separately.
+Each test creates its own temporary filesystem or database fixture. `MainWindowTests.setUpClass()` owns a `QApplication` instance for widget tests. Tray availability is patched through `shortcut_studio.ui.tray` in the hide/close tests so their result does not depend on the host notification area. Workflow tests pump Qt events until the worker completes, covering signal delivery and sequential batch execution. The packaged icon test checks source ICO sizes and the `_MEIPASS` path rule; the PyInstaller build is checked separately.
 
 ## Invariants and Safeguards
 

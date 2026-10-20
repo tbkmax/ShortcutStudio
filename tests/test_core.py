@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -303,7 +304,7 @@ class MainWindowTests(unittest.TestCase):
             self.assertFalse(window.isMaximized())
             self.assertEqual(window.max_button.icon_type, "maximize")
 
-    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
+    @patch("shortcut_studio.ui.tray.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
     def test_system_tray_icon_and_hide_restore(self, _tray_available) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             from shortcut_studio.app import MainWindow
@@ -335,7 +336,7 @@ class MainWindowTests(unittest.TestCase):
             window._restore_from_tray()
             self.assertFalse(window.isHidden())
 
-    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
+    @patch("shortcut_studio.ui.tray.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
     def test_close_event_always_hides_to_tray(self, _tray_available) -> None:
         """Close button always hides to system tray (Discord-style); only Quit from tray menu exits."""
         with tempfile.TemporaryDirectory() as temporary:
@@ -357,7 +358,7 @@ class MainWindowTests(unittest.TestCase):
             window.close()
             self.assertTrue(window.isHidden())
 
-    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=False)
+    @patch("shortcut_studio.ui.tray.QSystemTrayIcon.isSystemTrayAvailable", return_value=False)
     def test_close_exits_without_system_tray(self, _tray_unavailable) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             from shortcut_studio.app import MainWindow
@@ -367,7 +368,7 @@ class MainWindowTests(unittest.TestCase):
             self.assertTrue(window.isHidden())
             self.assertFalse(window.tray_icon.isVisible())
 
-    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
+    @patch("shortcut_studio.ui.tray.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
     def test_close_recovers_hidden_or_missing_tray_icon(self, _tray_available) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             from PyQt6.QtGui import QIcon
@@ -380,6 +381,50 @@ class MainWindowTests(unittest.TestCase):
             self.assertTrue(window.isHidden())
             self.assertTrue(window.tray_icon.isVisible())
             self.assertFalse(window.tray_icon.icon().isNull())
+
+    def test_workflow_controller_releases_worker_after_completion(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from shortcut_studio.app import MainWindow
+
+            root = Path(temporary)
+            source = root / "source"
+            target = root / "target"
+            source.mkdir()
+            target.mkdir()
+            window = MainWindow(database_path=root / "ui_test.db")
+            pair, _created = window.database.get_or_create_pair(source, target)
+            window._launch_workflow(source, target, pair.id, check_only=False)
+            deadline = time.monotonic() + 5
+            while window.workflow.worker is not None and time.monotonic() < deadline:
+                self.app.processEvents()
+                time.sleep(0.01)
+            self.app.processEvents()
+            self.assertIsNone(window.workflow.worker)
+            self.assertIs(window.pages.currentWidget(), window.done_page)
+            self.assertIn("Created 0 shortcuts", window.done_summary.text())
+
+    def test_workflow_controller_checks_saved_pairs_in_sequence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from shortcut_studio.app import MainWindow
+
+            root = Path(temporary)
+            window = MainWindow(database_path=root / "ui_test.db")
+            for number in (1, 2):
+                source = root / f"source{number}"
+                target = root / f"target{number}"
+                source.mkdir()
+                target.mkdir()
+                window.database.get_or_create_pair(source, target)
+            window._check_all_pairs()
+            deadline = time.monotonic() + 5
+            while window.workflow.batch_check_total and time.monotonic() < deadline:
+                self.app.processEvents()
+                time.sleep(0.01)
+            self.app.processEvents()
+            self.assertIsNone(window.workflow.worker)
+            self.assertEqual(window.workflow.batch_check_total, 0)
+            self.assertIs(window.pages.currentWidget(), window.done_page)
+            self.assertIn("Checked 2 of 2 saved libraries", window.done_summary.text())
 
     def test_packaged_icon_path_and_multisize_icon(self) -> None:
         from PyQt6.QtGui import QIcon

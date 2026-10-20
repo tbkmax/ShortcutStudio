@@ -6,23 +6,24 @@ This document illustrates the visual hierarchy, window state transitions, and sy
 
 ## 1. UI Class Diagram
 
-The class diagram outlines the ownership hierarchy between the top-level orchestrator (`MainWindow`), custom framing chrome (`HeaderBar`), system tray integration (`QSystemTrayIcon`), and background workers.
+The class diagram outlines the ownership boundaries between the window, custom framing chrome, tray controller, and workflow controller.
 
 ```mermaid
 classDiagram
     class MainWindow {
         +Database database
-        +ScanWorker worker
-        +QSystemTrayIcon tray_icon
+        +WorkflowController workflow
+        +TrayController tray
         +HeaderBar header_widget
         +QStackedWidget pages
         +QPushButton min_button
         +QPushButton max_button
         +QPushButton close_button
         +_setup_tray_icon()
-        +_on_tray_activated(reason)
         +_restore_from_tray()
         +_hide_to_tray() bool
+        +_start_workflow()
+        +_cancel_workflow()
         +_toggle_maximize()
         +_quit_application()
         +_determine_edge(pos) int
@@ -57,13 +58,32 @@ classDiagram
         +hide()
     }
 
+    class TrayController {
+        +QSystemTrayIcon icon
+        +hide_window() bool
+        +restore_window()
+        +show_first_hide_hint()
+        +hide_icon()
+    }
+
+    class WorkflowController {
+        +ScanWorker worker
+        +list check_queue
+        +int batch_check_total
+        +launch(source, target, pair_id, check_only)
+        +cancel()
+        +stop_for_shutdown() bool
+    }
+
     MainWindow *-- HeaderBar : embeds as top bar
-    MainWindow *-- QSystemTrayIcon : owns
+    MainWindow *-- TrayController : owns
+    MainWindow *-- WorkflowController : owns
+    TrayController *-- QSystemTrayIcon : owns
     MainWindow ..> FolderRow : renders in progress & list pages
 ```
 
 ### Explanation
-`MainWindow` serves as the root controller. It inherits from `QMainWindow`, installs the `HeaderBar` at the top of its `#shell` layout, and instantiates `QSystemTrayIcon`. `_app_icon_path()` locates the bundled ICO for both window and tray icons. `_hide_to_tray()` returns whether the window could safely hide; the normal minimize button uses `showMinimized()`.
+`MainWindow` hosts pages and Qt window events. `TrayController` owns the notification-area icon and determines whether the window can safely hide. `WorkflowController` owns worker lifetimes and batch state. `_app_icon_path()` locates the bundled ICO for the window and tray; the normal minimize button uses `showMinimized()`.
 
 ---
 
@@ -105,32 +125,38 @@ sequenceDiagram
     actor User
     participant Header as HeaderBar
     participant Window as MainWindow
+    participant Controller as TrayController
     participant Tray as QSystemTrayIcon
+    participant Workflow as WorkflowController
     participant Menu as QMenu
 
     User->>Header: Click Close Button (X)
     Header->>Window: close()
-    Window->>Tray: isSystemTrayAvailable()
+    Window->>Controller: hide_window()
+    Controller->>Tray: isSystemTrayAvailable()
     alt Tray available
-        Window->>Tray: Restore missing icon and show if hidden
-        Window->>Window: _hide_to_tray(), hide()
+        Controller->>Tray: Restore missing icon and show if hidden
+        Controller->>Window: hide()
+        Window->>Controller: show_first_hide_hint()
         Note over Window: Window hidden from screen & taskbar.<br/>App remains running in background.
     else Tray unavailable
-        Window->>Window: Cancel worker, accept close, app.quit()
+        Window->>Workflow: stop_for_shutdown()
+        Window->>Window: Accept close, app.quit()
     end
 
     alt User Left-Clicks Tray
         User->>Tray: Left-Click Tray Icon
-        Tray->>Window: activated (Trigger)
-        Window->>Window: _restore_from_tray()
-        Window->>Window: showNormal(), raise_(), activateWindow()
+        Tray->>Controller: activated (Trigger)
+        Controller->>Window: showNormal(), raise_(), activateWindow()
         Note over Window: Window restored & focused
     else User Right-Clicks Tray
         User->>Tray: Right-Click Tray Icon
         Tray->>Menu: Show Context Menu
         User->>Menu: Click "Quit"
         Menu->>Window: _quit_application()
-        Window->>Window: Cancel worker, hide tray, app.quit()
+        Window->>Workflow: stop_for_shutdown()
+        Window->>Controller: hide_icon()
+        Window->>Window: app.quit()
     end
 ```
 

@@ -24,6 +24,17 @@ This backlog tracks prioritized improvements, enhancements, and technical debt s
 
 ## Medium Priority
 
+### - [x] Separate Window Tray and Workflow Responsibilities
+
+- **Completed**: 2026-10-20
+- **Problem or opportunity**: `MainWindow` owned tray integration and scan thread state alongside page rendering, making lifecycle changes difficult to isolate.
+- **Desired outcome**: Tray behavior and workflow coordination have dedicated owners while the window remains the page host.
+- **Scope**: `shortcut_studio/ui/window.py`, `shortcut_studio/ui/tray.py`, `shortcut_studio/ui/workflow.py`, `tests/test_core.py`.
+- **Acceptance criteria**: (1) Close and restore behavior stays functional. (2) Worker completion releases the active thread. (3) Saved pairs run in sequence during batch checks. (4) Existing facade imports remain valid.
+- **Dependencies and risks**: Qt signal delivery and worker lifetime during queued batch runs.
+- **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`; facade import check.
+- **Priority**: Medium (maintenance and lifecycle reliability).
+
 ### - [ ] Windows 11 Snap Layouts Native Hit Testing
 - **Problem or opportunity**: Windows 11 displays a hover layout menu over native maximize buttons (`WM_NCHITTEST` `HTMAXBUTTON`). With the frameless custom maximize button, native OS snap flyouts are not automatically triggered by hover.
 - **Desired outcome**: When hovering over `windowMaxButton` on Windows 11, the native Snap Layouts menu appears, allowing quick desktop tiling.

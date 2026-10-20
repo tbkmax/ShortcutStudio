@@ -6,6 +6,13 @@ All notable changes to the `shortcut_studio.ui` module are documented in this fi
 
 ## [Unreleased]
 
+### Changed
+
+#### 2026-10-20 - Separate Tray and Workflow Coordination
+- Moved notification-area icon, menu, hide/restore, and first-hide hint behavior into [`TrayController`](../tray.py).
+- Moved scan worker ownership, batch-check state, completion handling, and bounded worker cancellation into [`WorkflowController`](../workflow.py).
+- [`MainWindow`](../window.py) continues to host pages and Qt window events while delegating those operations; existing page callbacks and root facades remain valid.
+
 ### Fixed
 
 #### 2026-10-20 - Reliable Packaged Tray Icon and Close Behavior

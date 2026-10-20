@@ -51,6 +51,9 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 ### Changed
 
+#### 2026-10-20 - UI Lifecycle Controllers
+- Extracted [`TrayController`](../ui/tray.py) and [`WorkflowController`](../ui/workflow.py) from `MainWindow` to own notification-area behavior and scan worker lifetimes respectively. [`MainWindow`](../ui/window.py) remains the page host and Qt window-event handler.
+
 #### 2026-10-17 - Architectural Refactoring & Backward-Compatibility Facades
 - Refactored `shortcut_studio/database.py`, `shortcut_studio/shortcuts.py`, `shortcut_studio/worker.py`, and `shortcut_studio/app.py` to serve as backward-compatible facades re-exporting public symbols.
 - Preserved 100% public API compatibility across all existing imports, PyInstaller specs, and unit tests.

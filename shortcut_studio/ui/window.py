@@ -17,22 +17,18 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
     QScrollArea,
     QSizePolicy,
     QStackedWidget,
-    QStyle,
-    QSystemTrayIcon,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from shortcut_studio.core.worker import ScanWorker
 from shortcut_studio.core.shell_link import install_launch_item, shortcut_path
 from shortcut_studio.models import FolderPair, FolderResult, PairItem, ResultStatus
 from shortcut_studio.scanner import find_executables
@@ -73,6 +69,8 @@ from shortcut_studio.ui.theme import (
     RED,
     STYLESHEET,
 )
+from shortcut_studio.ui.tray import TrayController
+from shortcut_studio.ui.workflow import WorkflowController
 
 
 RESIZE_MARGIN = 6
@@ -120,18 +118,12 @@ class MainWindow(QMainWindow):
         self.database = Database(
             database_path or local_data / "ShortcutStudio" / "shortcut_studio.db"
         )
-        self.worker: ScanWorker | None = None
-        self.check_queue: list[FolderPair] = []
-        self.batch_check_total = 0
-        self.batch_check_completed = 0
-        self.batch_check_unavailable = 0
-        self.batch_check_totals = [0, 0, 0, 0, 0]
+        self.workflow = WorkflowController(self, self.database)
         self.folder_rows: dict[Path, FolderRow] = {}
         self.current_choice_folder: Path | None = None
         self.current_candidates: list[Path] = []
         self.choice_context = "workflow"
         self.current_edit_pair: FolderPair | None = None
-        self.active_target: Path | None = None
         self.icon_provider = QFileIconProvider()
         self.nav_buttons: list[QPushButton] = []
 
@@ -330,7 +322,7 @@ class MainWindow(QMainWindow):
         self.pages.setCurrentWidget(self.settings_page)
 
     def _workflow_active(self) -> bool:
-        return bool(self.worker and self.worker.isRunning())
+        return self.workflow.is_active()
 
     def _refresh_pair_cards(
         self, layout: QVBoxLayout, for_check: bool, for_edit: bool = False
@@ -373,29 +365,7 @@ class MainWindow(QMainWindow):
         self._launch_workflow(pair.source, pair.target, pair.id, check_only=True)
 
     def _check_all_pairs(self) -> None:
-        if self._workflow_active():
-            return
-        pairs = self.database.list_pairs()
-        if not pairs:
-            QMessageBox.information(
-                self, "No saved libraries", "Start a new library before running a check."
-            )
-            return
-        self.check_queue = [
-            pair for pair in pairs if pair.source.is_dir() and pair.target.is_dir()
-        ]
-        self.batch_check_total = len(pairs)
-        self.batch_check_completed = 0
-        self.batch_check_unavailable = len(pairs) - len(self.check_queue)
-        self.batch_check_totals = [0, 0, 0, 0, 0]
-        if not self.check_queue:
-            self._finish_batch_check()
-            return
-        self._launch_next_batch_check()
-
-    def _launch_next_batch_check(self) -> None:
-        pair = self.check_queue.pop(0)
-        self._launch_workflow(pair.source, pair.target, pair.id, check_only=True)
+        self.workflow.check_all_pairs()
 
     def _delete_pair(self, pair: FolderPair) -> None:
         confirmed = True
@@ -414,7 +384,6 @@ class MainWindow(QMainWindow):
 
     def _edit_pair(self, pair: FolderPair) -> None:
         self.current_edit_pair = pair
-        self.active_target = pair.target
         self.edit_detail_title.setText(pair.target.name or str(pair.target))
         self.edit_detail_caption.setText(
             f"Source: {pair.source}\nTarget: {pair.target}"
@@ -526,46 +495,12 @@ class MainWindow(QMainWindow):
         )
 
     def _start_workflow(self) -> None:
-        source = Path(self.source_field.text().strip()).expanduser()
-        target = Path(self.target_field.text().strip()).expanduser()
-        if not source.is_dir():
-            QMessageBox.warning(self, "Source folder", "Choose an existing source folder.")
-            return
-        if not target.is_dir():
-            QMessageBox.warning(self, "Target folder", "Choose an existing target folder.")
-            return
-        if source.resolve() == target.resolve():
-            QMessageBox.warning(self, "Folder selection", "Source and target folders must be different.")
-            return
-
-        source = source.resolve()
-        target = target.resolve()
-        pair, created = self.database.get_or_create_pair(source, target)
-        self._launch_workflow(
-            source, target, pair.id, check_only=not created
-        )
+        self.workflow.start_from_fields()
 
     def _launch_workflow(
         self, source: Path, target: Path, pair_id: int, check_only: bool
     ) -> None:
-        self._clear_folder_rows()
-        self.progress_caption.setText("Reading folders…")
-        self.progress_bar.setRange(0, 0)
-        self.pages.setCurrentWidget(self.progress_page)
-        self.worker = ScanWorker(
-            source, target, self.database, pair_id, check_only=check_only
-        )
-        self.active_target = target
-        for button in self.nav_buttons:
-            button.setEnabled(False)
-        self.worker.folders_ready.connect(self._folders_ready)
-        self.worker.folder_started.connect(self._folder_started)
-        self.worker.choice_required.connect(self._show_choice)
-        self.worker.folder_finished.connect(self._folder_finished)
-        self.worker.workflow_finished.connect(self._workflow_finished)
-        self.worker.fatal_error.connect(self._fatal_error)
-        self.worker.finished.connect(self._worker_stopped)
-        self.worker.start()
+        self.workflow.launch(source, target, pair_id, check_only)
 
     def _clear_folder_rows(self) -> None:
         self.folder_rows.clear()
@@ -592,8 +527,9 @@ class MainWindow(QMainWindow):
         self.progress_bar.setRange(0, max(total, 1))
         self.progress_bar.setValue(0)
         prefix = (
-            f"Library {self.batch_check_completed + 1} of {self.batch_check_total}: "
-            if self.batch_check_total
+            f"Library {self.workflow.batch_check_completed + 1} of "
+            f"{self.workflow.batch_check_total}: "
+            if self.workflow.batch_check_total
             else ""
         )
         self.progress_caption.setText(
@@ -658,8 +594,8 @@ class MainWindow(QMainWindow):
             row = self.folder_rows.get(self.current_choice_folder)
             if row:
                 row.set_status("Creating", BODY)
-        if self.worker:
-            self.worker.choose(chosen)
+        if self.workflow.worker:
+            self.workflow.worker.choose(chosen)
 
     def _save_edited_choice(self, chosen: Path) -> None:
         if not self.current_edit_pair or not self.current_choice_folder:
@@ -730,78 +666,8 @@ class MainWindow(QMainWindow):
         self.progress_bar.setValue(completed)
         self.progress_caption.setText(f"Processed {completed} of {len(self.folder_rows)} folders.")
 
-    def _workflow_finished(
-        self, created: int, skipped: int, failed: int, up_to_date: int, removed: int
-    ) -> None:
-        if self.batch_check_total:
-            values = (created, skipped, failed, up_to_date, removed)
-            self.batch_check_totals = [
-                current + value
-                for current, value in zip(self.batch_check_totals, values)
-            ]
-            self.batch_check_completed += 1
-            return
-        self.done_summary.setText(
-            f"Created {created} shortcut{'s' if created != 1 else ''}. "
-            f"{skipped} folder{'s' if skipped != 1 else ''} had no launch file. "
-            f"{up_to_date} already up to date. "
-            f"{removed} obsolete shortcut{'s' if removed != 1 else ''} removed. "
-            f"{failed} failed."
-        )
-        self.pages.setCurrentWidget(self.done_page)
-        if (
-            self.active_target
-            and self.database.get_setting_bool("open_target_after_completion")
-        ):
-            self._open_folder(self.active_target)
-
-    def _fatal_error(self, message: str) -> None:
-        if self.batch_check_total:
-            self.batch_check_unavailable += 1
-            return
-        QMessageBox.critical(self, "Could not complete workflow", message)
-        self.pages.setCurrentWidget(self.setup_page)
-
-    def _worker_stopped(self) -> None:
-        """Release the QThread only after its run method has fully returned."""
-        finished_worker = self.sender()
-        if finished_worker is self.worker:
-            self.worker = None
-            if self.batch_check_total:
-                if self.check_queue:
-                    self._launch_next_batch_check()
-                    return
-                self._finish_batch_check()
-                return
-            for button in self.nav_buttons:
-                button.setEnabled(True)
-
-    def _finish_batch_check(self) -> None:
-        created, skipped, failed, up_to_date, removed = self.batch_check_totals
-        unavailable = self.batch_check_unavailable
-        self.done_summary.setText(
-            f"Checked {self.batch_check_completed} of {self.batch_check_total} saved libraries. "
-            f"Created {created} shortcut{'s' if created != 1 else ''}. "
-            f"{skipped} folder{'s' if skipped != 1 else ''} had no launch file. "
-            f"{up_to_date} already up to date. "
-            f"{removed} obsolete shortcut{'s' if removed != 1 else ''} removed. "
-            f"{failed} failed. "
-            f"{unavailable} librar{'ies were' if unavailable != 1 else 'y was'} unavailable."
-        )
-        self.batch_check_total = 0
-        self.batch_check_unavailable = 0
-        self.batch_check_completed = 0
-        self.check_queue.clear()
-        for button in self.nav_buttons:
-            button.setEnabled(True)
-        self.pages.setCurrentWidget(self.done_page)
-
     def _cancel_workflow(self) -> None:
-        self.check_queue.clear()
-        if self.worker and self.worker.isRunning():
-            self.worker.cancel()
-            self.progress_caption.setText("Cancelling…")
-            self.pages.setCurrentWidget(self.progress_page)
+        self.workflow.cancel()
 
     def _reset_to_home(self) -> None:
         self.source_field.clear()
@@ -809,73 +675,19 @@ class MainWindow(QMainWindow):
         self._show_home()
 
     def _setup_tray_icon(self) -> None:
-        self.tray_icon = QSystemTrayIcon(self)
-        icon_path = _app_icon_path()
-        if icon_path.exists():
-            icon = QIcon(str(icon_path))
-        else:
-            icon = self.windowIcon()
-        if icon.isNull():
-            icon = self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
-        self.tray_icon.setIcon(icon)
-        self.tray_icon.setToolTip(APP_NAME)
-
-        tray_menu = QMenu(self)
-        self.tray_open_action = tray_menu.addAction(f"Open {APP_NAME}")
-        open_font = self.tray_open_action.font()
-        open_font.setBold(True)
-        self.tray_open_action.setFont(open_font)
-        self.tray_open_action.triggered.connect(self._restore_from_tray)
-
-        self.tray_toggle_action = tray_menu.addAction("Hide to tool bar")
-        self.tray_toggle_action.triggered.connect(self._toggle_hide_to_tray)
-
-        tray_menu.addSeparator()
-
-        quit_action = tray_menu.addAction("Quit")
-        quit_action.triggered.connect(self._quit_application)
-
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.activated.connect(self._on_tray_activated)
-        self.tray_icon.show()
-
-    def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
-        if reason in (
-            QSystemTrayIcon.ActivationReason.Trigger,
-            QSystemTrayIcon.ActivationReason.DoubleClick,
-        ):
-            self._restore_from_tray()
+        self.tray = TrayController(self, _app_icon_path(), self._quit_application)
+        self.tray_icon = self.tray.icon
+        self.tray_open_action = self.tray.open_action
+        self.tray_toggle_action = self.tray.toggle_action
 
     def _restore_from_tray(self) -> None:
-        if self.isHidden():
-            self.show()
-        if self.isMinimized():
-            self.showNormal()
-        self.show()
-        self.raise_()
-        self.activateWindow()
-        if hasattr(self, "tray_toggle_action"):
-            self.tray_toggle_action.setText("Hide to tool bar")
+        self.tray.restore_window()
 
     def _toggle_hide_to_tray(self) -> None:
-        if self.isHidden():
-            self._restore_from_tray()
-        else:
-            self._hide_to_tray()
+        self.tray.toggle_window()
 
     def _hide_to_tray(self) -> bool:
-        if not QSystemTrayIcon.isSystemTrayAvailable():
-            return False
-        if self.tray_icon.icon().isNull():
-            self.tray_icon.setIcon(
-                self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
-            )
-        if not self.tray_icon.isVisible():
-            self.tray_icon.show()
-        self.hide()
-        if hasattr(self, "tray_toggle_action"):
-            self.tray_toggle_action.setText(f"Show {APP_NAME}")
-        return True
+        return self.tray.hide_window()
 
     def _toggle_maximize(self) -> None:
         if self.isMaximized():
@@ -885,11 +697,8 @@ class MainWindow(QMainWindow):
 
     def _quit_application(self) -> None:
         self._is_quitting = True
-        if self.worker and self.worker.isRunning():
-            self.worker.cancel()
-            self.worker.wait(3000)
-        if hasattr(self, "tray_icon") and self.tray_icon:
-            self.tray_icon.hide()
+        self.workflow.stop_for_shutdown()
+        self.tray.hide_icon()
         QApplication.instance().quit()
 
     def changeEvent(self, event: QEvent) -> None:
@@ -998,26 +807,14 @@ class MainWindow(QMainWindow):
         if not getattr(self, "_is_quitting", False):
             if self._hide_to_tray():
                 event.ignore()
-                # Show a one-time balloon hint so the user knows where to find the app.
-                if not getattr(self, "_tray_hint_shown", False):
-                    self._tray_hint_shown = True
-                    self.tray_icon.showMessage(
-                        APP_NAME,
-                        "Shortcut Studio is still running. Click the tray icon to reopen it, "
-                        "or right-click for options.",
-                        QSystemTrayIcon.MessageIcon.Information,
-                        4000,
-                    )
+                self.tray.show_first_hide_hint()
                 return
             self._is_quitting = True
-        if self.worker and self.worker.isRunning():
-            self.worker.cancel()
-            if not self.worker.wait(3000):
-                self._is_quitting = False
-                event.ignore()
-                return
-        if hasattr(self, "tray_icon") and self.tray_icon:
-            self.tray_icon.hide()
+        if not self.workflow.stop_for_shutdown():
+            self._is_quitting = False
+            event.ignore()
+            return
+        self.tray.hide_icon()
         event.accept()
         QApplication.instance().quit()
 

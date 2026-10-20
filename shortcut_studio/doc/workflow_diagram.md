@@ -13,18 +13,32 @@ classDiagram
     direction TB
     class MainWindow {
         -Database database
-        -ScanWorker worker
-        -QSystemTrayIcon tray_icon
+        -WorkflowController workflow
+        -TrayController tray
         -HeaderBar header_widget
         -QStackedWidget pages
-        -list check_queue
-        +show_home()
+        +_show_home()
         +_hide_to_tray() bool
         +_restore_from_tray()
         +_toggle_maximize()
         +_quit_application()
         +_launch_workflow(source, target, pair_id, check_only)
         +closeEvent(event)
+    }
+
+    class TrayController {
+        +QSystemTrayIcon icon
+        +hide_window() bool
+        +restore_window()
+        +show_first_hide_hint()
+    }
+
+    class WorkflowController {
+        +ScanWorker worker
+        +list check_queue
+        +launch(source, target, pair_id, check_only)
+        +cancel()
+        +stop_for_shutdown() bool
     }
 
     class ScanWorker {
@@ -79,7 +93,9 @@ classDiagram
     }
 
     MainWindow "1" *-- "1" Database : manages
-    MainWindow "1" o-- "0..1" ScanWorker : runs
+    MainWindow "1" *-- "1" TrayController : owns
+    MainWindow "1" *-- "1" WorkflowController : owns
+    WorkflowController "1" o-- "0..1" ScanWorker : runs
     MainWindow "1" *-- "many" FolderPair : navigates
     Database "1" ..> "many" FolderPair : persists
     Database "1" ..> "many" PairItem : persists
@@ -88,7 +104,7 @@ classDiagram
 ```
 
 ### Explanation
-- [`MainWindow`](../ui/window.py) acts as the coordinator holding references to the [`Database`](../storage/database.py) facade and managing the optional active [`ScanWorker`](../core/worker.py) thread. `_hide_to_tray()` repairs a missing tray icon and returns false when Windows has no notification area; `closeEvent()` then quits.
+- [`MainWindow`](../ui/window.py) hosts the pages and Qt window events. [`WorkflowController`](../ui/workflow.py) manages the optional active [`ScanWorker`](../core/worker.py) thread; [`TrayController`](../ui/tray.py) owns the tray icon and hide/restore behavior. `_hide_to_tray()` delegates to the tray controller and returns false when Windows has no notification area; `closeEvent()` then quits.
 - The worker executes asynchronously and reports progress via Qt signals without locking the GUI.
 - [`FolderPair`](../models.py), [`PairItem`](../models.py), and [`FolderResult`](../models.py) are immutable value dataclasses that flow between storage, execution, and presentation.
 
@@ -103,14 +119,16 @@ sequenceDiagram
     autonumber
     actor User
     participant MW as MainWindow
+    participant Flow as WorkflowController
     participant Worker as ScanWorker
     participant FS as File System
     participant COM as Windows Shell Link
     participant DB as SQLite Database
 
     User->>MW: Click "Scan folders" or "Check"
-    MW->>DB: get_or_create_pair(source, target)
-    MW->>Worker: start() [QThread]
+    MW->>Flow: start_from_fields() or launch()
+    Flow->>DB: get_or_create_pair() or list_pairs()
+    Flow->>Worker: start() [QThread]
     activate Worker
 
     Worker->>FS: source_folders(source)
@@ -134,9 +152,9 @@ sequenceDiagram
 
     Worker->>DB: complete_run(run_id)
     Worker->>DB: touch_pair(pair_id)
-    Worker-->>MW: workflow_finished(stats)
+    Worker-->>Flow: workflow_finished(stats)
     deactivate Worker
-    MW->>User: Display Done Page / summary
+    Flow->>MW: Display Done Page / summary
 ```
 
 ### Explanation

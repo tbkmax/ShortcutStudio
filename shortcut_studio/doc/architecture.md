@@ -50,7 +50,9 @@ shortcut_studio/
 ├── ui/                   # Presentation and user interface
 │   ├── __init__.py
 │   ├── theme.py          # Color constants and dark QSS stylesheet
-│   ├── window.py         # MainWindow orchestrator & main() entry point
+│   ├── window.py         # MainWindow page host & main() entry point
+│   ├── tray.py           # Notification-area icon and visibility controller
+│   ├── workflow.py       # Scan worker and batch-check controller
 │   ├── components/       # Reusable UI widgets and element factories
 │   │   ├── __init__.py
 │   │   ├── folder_row.py # FolderRow frame with status pill
@@ -92,6 +94,8 @@ shortcut_studio/
 | **Worker Engine** | [`core/worker.py`](../core/worker.py) | Background `QThread` executing scanning, sync, and condition-variable pause. | `ScanWorker`, `choose()`, `cancel()` |
 | **Storage Engine** | [`storage/database.py`](../storage/database.py) | Manages SQLite connection, schema DDL, repository operations, and JSON backups. | `Database`, `PairRepository`, `RunRepository`, `SettingsRepository` |
 | **UI Presentation** | [`ui/window.py`](../ui/window.py) | Coordinates navigation across 10 pages, renders themes, and handles window lifecycle. | `MainWindow`, `main()` |
+| **Tray Integration** | [`ui/tray.py`](../ui/tray.py) | Owns the tray icon, menu, and hide/restore actions. | `TrayController` |
+| **Workflow Coordination** | [`ui/workflow.py`](../ui/workflow.py) | Owns the active `ScanWorker`, batch queue, completion totals, and bounded cancellation. | `WorkflowController` |
 | **Application Icon** | [`../assest/icon.svg`](../../assest/icon.svg), [`../assest/icon.ico`](../../assest/icon.ico) | Source artwork and multi-resolution Windows icon used by the EXE, window, and tray. | `_app_icon_path()` in `ui/window.py` |
 | **Windows Build** | [`../scripts/build.ps1`](../../scripts/build.ps1) | Builds and verifies the one-file EXE from the checked-in spec. | `PyInstaller`, `CArchiveReader` |
 
@@ -101,14 +105,14 @@ shortcut_studio/
 
 1. **Setup & Scan Initiation**:
    - The user selects `source_folder` and `target_folder` on [`setup_page.py`](../ui/pages/setup_page.py).
-   - [`MainWindow`](../ui/window.py) queries or registers the pair with [`Database.get_or_create_pair()`](../storage/database.py).
-   - An asynchronous [`ScanWorker`](../core/worker.py) thread is spawned, moving the UI to the processing view.
+   - [`WorkflowController`](../ui/workflow.py) queries or registers the pair with [`Database.get_or_create_pair()`](../storage/database.py).
+   - The controller starts an asynchronous [`ScanWorker`](../core/worker.py) thread and moves the UI to the processing view.
 
 2. **Folder Processing & Candidate Disambiguation**:
    - For each subfolder discovered by [`source_folders()`](../scanner.py), the worker invokes [`find_executables()`](../scanner.py).
    - If a single executable is found, it is automatically selected.
    - If multiple candidates are found and no saved choice exists, `ScanWorker` emits `choice_required` and pauses using `threading.Condition.wait_for()`.
-   - The UI displays [`choice_page.py`](../ui/pages/choice_page.py). The user selects an option, and [`MainWindow._submit_choice()`](../ui/window.py) calls `ScanWorker.choose()`, which notifies the condition variable and resumes processing.
+   - The UI displays [`choice_page.py`](../ui/pages/choice_page.py). The user selects an option, and [`MainWindow._submit_choice()`](../ui/window.py) calls the active worker's `choose()`, which notifies the condition variable and resumes processing.
 
 3. **Shortcut Creation & Recording**:
    - The worker invokes [`install_launch_item()`](../core/shell_link.py) to generate or copy the `.lnk` file into `target_folder`.
@@ -131,6 +135,6 @@ shortcut_studio/
 3. **Database Concurrency & Foreign Keys**:
    - Every SQLite connection explicitly enables `PRAGMA foreign_keys = ON` to enforce cascade deletion of runs, results, and pair items.
 4. **Tray Visibility Safeguard**:
-   - `MainWindow` restores a missing tray icon before hiding on close. If no system tray exists, Close quits cleanly instead of leaving an unresponsive window.
+   - `TrayController` restores a missing tray icon before hiding on close. If no system tray exists, Close quits cleanly instead of leaving an unresponsive window.
 5. **Graceful Thread Shutdown**:
-   - `MainWindow.closeEvent` invokes `worker.cancel()` and performs a bounded wait (`worker.wait(3000)`), preventing crashes or resource leaks upon closing during active processing.
+   - `MainWindow.closeEvent` calls `WorkflowController.stop_for_shutdown()`, which invokes `worker.cancel()` and performs a bounded wait (`worker.wait(3000)`) during active processing.
