@@ -22,7 +22,7 @@ classDiagram
         +_setup_tray_icon()
         +_on_tray_activated(reason)
         +_restore_from_tray()
-        +_hide_to_tray()
+        +_hide_to_tray() bool
         +_toggle_maximize()
         +_quit_application()
         +_determine_edge(pos) int
@@ -63,7 +63,7 @@ classDiagram
 ```
 
 ### Explanation
-`MainWindow` serves as the root controller. It inherits from `QMainWindow`, installs the `HeaderBar` at the top of its `#shell` layout, and instantiates `QSystemTrayIcon`. It exposes slots to minimize into tray, restore, toggle maximize, and safely terminate.
+`MainWindow` serves as the root controller. It inherits from `QMainWindow`, installs the `HeaderBar` at the top of its `#shell` layout, and instantiates `QSystemTrayIcon`. `_app_icon_path()` locates the bundled ICO for both window and tray icons. `_hide_to_tray()` returns whether the window could safely hide; the normal minimize button uses `showMinimized()`.
 
 ---
 
@@ -73,26 +73,31 @@ classDiagram
 stateDiagram-v2
     [*] --> NormalVisible : Application Launch
 
-    NormalVisible --> HiddenInTray : Click Minimize Button (_)
+    NormalVisible --> HiddenInTray : Click Close Button (X), tray available
+    Maximized --> HiddenInTray : Click Close Button (X), tray available
     HiddenInTray --> NormalVisible : Left-Click Tray Icon
+    NormalVisible --> [*] : Click Close Button (X), tray unavailable
+    Maximized --> [*] : Click Close Button (X), tray unavailable
     
     NormalVisible --> Maximized : Click Maximize Button (□) or Double-Click Header
     Maximized --> NormalVisible : Click Restore Button (❐) or Double-Click Header
 
     HiddenInTray --> [*] : Right-Click Tray -> Quit
-    NormalVisible --> [*] : Click Close Button (✕)
-    Maximized --> [*] : Click Close Button (✕)
+    NormalVisible --> Minimized : Click Minimize Button (_)
+    Maximized --> Minimized : Click Minimize Button (_)
+    Minimized --> NormalVisible : Restore window
 ```
 
 ### Explanation
 The window transitions between three primary presentation states:
 1. **NormalVisible**: Frameless window with 12px rounded corners on all 4 sides.
 2. **Maximized**: Borderless full-screen view with `border-radius: 0px`.
-3. **HiddenInTray**: Hidden from screen and taskbar; background loop preserved via `QApplication.setQuitOnLastWindowClosed(False)`.
+3. **Minimized**: Window remains present in the taskbar and Alt+Tab.
+4. **HiddenInTray**: Hidden from screen and taskbar when the notification area exists; a hidden or missing tray icon is restored before hiding. With no tray, Close exits. The background loop is preserved via `QApplication.setQuitOnLastWindowClosed(False)`.
 
 ---
 
-## 3. Minimize to Tray and Restore Sequence Diagram
+## 3. Close to Tray and Restore Sequence Diagram
 
 ```mermaid
 sequenceDiagram
@@ -103,10 +108,16 @@ sequenceDiagram
     participant Tray as QSystemTrayIcon
     participant Menu as QMenu
 
-    User->>Header: Click Minimize Button (_)
-    Header->>Window: _hide_to_tray()
-    Window->>Window: hide()
-    Note over Window: Window hidden from screen & taskbar.<br/>App remains running in background.
+    User->>Header: Click Close Button (X)
+    Header->>Window: close()
+    Window->>Tray: isSystemTrayAvailable()
+    alt Tray available
+        Window->>Tray: Restore missing icon and show if hidden
+        Window->>Window: _hide_to_tray(), hide()
+        Note over Window: Window hidden from screen & taskbar.<br/>App remains running in background.
+    else Tray unavailable
+        Window->>Window: Cancel worker, accept close, app.quit()
+    end
 
     alt User Left-Clicks Tray
         User->>Tray: Left-Click Tray Icon
@@ -124,4 +135,4 @@ sequenceDiagram
 ```
 
 ### Explanation
-Demonstrates the complete event sequence for hiding to the tool bar (tray) and either restoring via single left-click or shutting down cleanly via the right-click menu.
+The close action checks for a usable tray icon before hiding. Once hidden, a left-click restores the window; the right-click menu can shut down cleanly.

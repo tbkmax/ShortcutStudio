@@ -1,7 +1,7 @@
 # Implementation Plan: Shortcut Studio Modularization & Architecture
 
 **Target Project**: Shortcut Studio  
-**Workspace**: `c:\Users\max99\Desktop\myProgram\CreateShortcut`  
+**Workspace**: `c:\Users\max99\Desktop\myProgram\ShortcutStudio`  
 **Date**: 2026-10-17  
 **Status**: Ready for Implementation  
 
@@ -338,7 +338,7 @@ stateDiagram-v2
 ## 5. Phased Implementation Roadmap
 
 ### Phase 1: Architecture Documentation Creation
-- Write [`doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/doc/architecture.md) adhering to `templates/doc/architecture.md` and `templates/doc/workflow_diagram.md`.
+- Write [`doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/doc/architecture.md) adhering to `templates/doc/architecture.md` and `templates/doc/workflow_diagram.md`.
 - Verify all diagrams and links.
 
 ### Phase 2: Storage Layer Modularization

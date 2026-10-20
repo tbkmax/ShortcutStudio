@@ -9,6 +9,7 @@ from shortcut_studio.storage.connection import _path_key
 DEFAULT_SETTINGS: dict[str, str] = {
     "open_target_after_completion": "false",
     "confirm_pair_deletion": "true",
+    "minimize_to_tray_on_close": "true",
 }
 
 

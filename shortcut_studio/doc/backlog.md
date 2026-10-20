@@ -14,6 +14,15 @@ This backlog records prioritized engineering tasks, architectural milestones, an
 
 ## High Priority
 
+### - [x] Restore Packaged Tray Visibility
+- **Problem or opportunity**: The packaged EXE did not include a runtime copy of the tray icon, so closing could leave the app unreachable.
+- **Desired outcome**: A new scalable icon appears on the EXE and in the tray; Close repairs a missing icon or quits when no tray exists.
+- **Scope**: `assest/icon.svg`, `assest/icon.ico`, `Shortcut Studio.spec`, `scripts/build.ps1`, `shortcut_studio/ui/window.py`, `tests/test_core.py`.
+- **Acceptance criteria**: (1) Seven ICO sizes are readable by Qt. (2) The spec bundles the ICO for runtime. (3) Close recovers a missing tray icon and hides with a usable tray. (4) Close quits when no tray exists.
+- **Dependencies and risks**: Existing packaged builds need to be rebuilt.
+- **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`; `.\scripts\build.ps1`; console startup probe.
+- **Priority**: High (app reachability; low effort). Completed 2026-10-20.
+
 ### - [x] FIX-2: Custom Frameless Window Behavior & System Tray Integration
 - **Problem or opportunity**: Window used default OS chrome without system tray support or theme alignment.
 - **Desired outcome**: Frameless window with custom minimize, resize, and close buttons, 12px rounded corners on all 4 sides adhering to `DESIGN.md`, and system tray hiding with left-click restore and right-click quit.

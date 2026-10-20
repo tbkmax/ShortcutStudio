@@ -5,6 +5,7 @@ __pycache__/
 *.spec
 .venv/
 venv/
+build/
 
 DESIGN.md
 About.txt
@@ -12,3 +13,5 @@ About.txt
 build/
 dist/
 build.txt
+!Shortcut Studio.spec
+.pyinstaller-build/

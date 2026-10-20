@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import sqlite3
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from shortcut_studio.database import Database
 from shortcut_studio.models import FolderResult, ResultStatus
@@ -208,6 +210,7 @@ class DatabaseTests(unittest.TestCase):
             )
             self.assertTrue(restored.get_setting_bool("open_target_after_completion"))
             self.assertFalse(restored.get_setting_bool("confirm_pair_deletion"))
+            self.assertTrue(restored.get_setting_bool("minimize_to_tray_on_close"))
 
 
 class WorkerTests(unittest.TestCase):
@@ -290,17 +293,18 @@ class MainWindowTests(unittest.TestCase):
             self.assertEqual(window.min_button.objectName(), "windowMinButton")
             self.assertEqual(window.max_button.objectName(), "windowMaxButton")
             self.assertEqual(window.close_button.objectName(), "windowCloseButton")
-            self.assertEqual(window.max_button.text(), "□")
+            self.assertEqual(window.max_button.icon_type, "maximize")
 
             # Test maximize toggle
             window._toggle_maximize()
             self.assertTrue(window.isMaximized())
-            self.assertEqual(window.max_button.text(), "❐")
+            self.assertEqual(window.max_button.icon_type, "restore")
             window._toggle_maximize()
             self.assertFalse(window.isMaximized())
-            self.assertEqual(window.max_button.text(), "□")
+            self.assertEqual(window.max_button.icon_type, "maximize")
 
-    def test_system_tray_icon_and_hide_restore(self) -> None:
+    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
+    def test_system_tray_icon_and_hide_restore(self, _tray_available) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             from shortcut_studio.app import MainWindow
             db_path = Path(temporary) / "ui_test.db"
@@ -310,16 +314,88 @@ class MainWindowTests(unittest.TestCase):
             self.assertIsNotNone(menu)
             action_texts = [act.text() for act in menu.actions() if act.text()]
             self.assertIn("Open Shortcut Studio", action_texts)
+            self.assertIn("Hide to tool bar", action_texts)
             self.assertIn("Quit", action_texts)
 
-            # Test hiding to tray and restoring
+            # Test normal minimization (reachable via Alt+Tab and visible in taskbar)
             window.show()
+            self.assertFalse(window.isMinimized())
             self.assertFalse(window.isHidden())
+            window.showMinimized()
+            self.assertTrue(window.isMinimized())
+            self.assertFalse(window.isHidden())
+            self.assertTrue(window.isVisible())
+            window._restore_from_tray()
+            self.assertFalse(window.isMinimized())
+            self.assertTrue(window.isVisible())
+
+            # Test explicit hiding to tray and restoring
             window._hide_to_tray()
             self.assertTrue(window.isHidden())
             window._restore_from_tray()
             self.assertFalse(window.isHidden())
 
+    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
+    def test_close_event_always_hides_to_tray(self, _tray_available) -> None:
+        """Close button always hides to system tray (Discord-style); only Quit from tray menu exits."""
+        with tempfile.TemporaryDirectory() as temporary:
+            from shortcut_studio.app import MainWindow
+            db_path = Path(temporary) / "ui_test.db"
+            window = MainWindow(database_path=db_path)
+
+            # Closing the window always hides to tray regardless of any setting
+            window.show()
+            self.assertFalse(window.isHidden())
+            window.close()
+            self.assertTrue(window.isHidden())
+
+            # Restoring from tray makes the window visible again
+            window._restore_from_tray()
+            self.assertFalse(window.isHidden())
+
+            # Closing again still hides (not quits)
+            window.close()
+            self.assertTrue(window.isHidden())
+
+    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=False)
+    def test_close_exits_without_system_tray(self, _tray_unavailable) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from shortcut_studio.app import MainWindow
+            window = MainWindow(database_path=Path(temporary) / "ui_test.db")
+            window.show()
+            self.assertTrue(window.close())
+            self.assertTrue(window.isHidden())
+            self.assertFalse(window.tray_icon.isVisible())
+
+    @patch("shortcut_studio.ui.window.QSystemTrayIcon.isSystemTrayAvailable", return_value=True)
+    def test_close_recovers_hidden_or_missing_tray_icon(self, _tray_available) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from PyQt6.QtGui import QIcon
+            from shortcut_studio.app import MainWindow
+            window = MainWindow(database_path=Path(temporary) / "ui_test.db")
+            window.show()
+            window.tray_icon.hide()
+            window.tray_icon.setIcon(QIcon())
+            self.assertFalse(window.close())
+            self.assertTrue(window.isHidden())
+            self.assertTrue(window.tray_icon.isVisible())
+            self.assertFalse(window.tray_icon.icon().isNull())
+
+    def test_packaged_icon_path_and_multisize_icon(self) -> None:
+        from PyQt6.QtGui import QIcon
+        from shortcut_studio.ui.window import _app_icon_path
+
+        source_icon = _app_icon_path()
+        self.assertTrue(source_icon.is_file())
+        self.assertEqual(
+            [size.width() for size in QIcon(str(source_icon)).availableSizes()],
+            [16, 24, 32, 48, 64, 128, 256],
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.object(sys, "_MEIPASS", temporary, create=True):
+                self.assertEqual(
+                    _app_icon_path(), Path(temporary) / "assest" / "icon.ico"
+                )
 
 if __name__ == "__main__":
     unittest.main()

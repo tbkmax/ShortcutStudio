@@ -1,0 +1,20 @@
+# Test Suite Changelog
+
+## [Unreleased]
+
+### Added
+
+#### 2026-10-20 - Test Documentation Directory
+- Created the `tests/doc/` directory with architecture, workflow, changelog, and backlog files based on the repository documentation templates.
+
+#### 2026-10-20 - Icon and Tray Regression Coverage
+- Added tests in [`test_core.py`](../test_core.py) for seven ICO sizes, PyInstaller `_MEIPASS` icon lookup, tray icon recovery, and clean exit when no system tray is available.
+
+### Changed
+
+#### 2026-10-20 - Deterministic Tray Tests
+- Tray hide and close tests in [`test_core.py`](../test_core.py) now patch the availability report so they pass on desktops and headless runners.
+
+## Migration and Upgrade Notes
+
+No operator action required.

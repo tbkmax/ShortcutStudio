@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QStackedWidget,
+    QStyle,
     QSystemTrayIcon,
     QTreeWidget,
     QTreeWidgetItem,
@@ -82,6 +83,12 @@ EDGE_RIGHT = 4
 EDGE_BOTTOM = 8
 
 
+def _app_icon_path() -> Path:
+    """Locate the runtime icon in source and PyInstaller one-file builds."""
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
+    return base / "assest" / "icon.ico"
+
+
 class MainWindow(QMainWindow):
     """Main desktop application window for Shortcut Studio."""
 
@@ -90,17 +97,24 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APP_NAME)
         self.setMinimumSize(820, 620)
         self.resize(980, 720)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
+        self.setWindowFlags(
+            Qt.WindowType.Window
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowSystemMenuHint
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setMouseTracking(True)
 
-        icon_path = Path(__file__).resolve().parent.parent.parent / "assest" / "icon.ico"
+        icon_path = _app_icon_path()
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
         self._resize_edge = EDGE_NONE
         self._drag_start_geom: QRect | None = None
         self._drag_start_pos: QPoint | None = None
+        self._is_quitting = False
 
         local_data = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
         self.database = Database(
@@ -796,20 +810,25 @@ class MainWindow(QMainWindow):
 
     def _setup_tray_icon(self) -> None:
         self.tray_icon = QSystemTrayIcon(self)
-        icon_path = Path(__file__).resolve().parent.parent.parent / "assest" / "icon.ico"
+        icon_path = _app_icon_path()
         if icon_path.exists():
             icon = QIcon(str(icon_path))
         else:
             icon = self.windowIcon()
+        if icon.isNull():
+            icon = self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
         self.tray_icon.setIcon(icon)
         self.tray_icon.setToolTip(APP_NAME)
 
         tray_menu = QMenu(self)
-        open_action = tray_menu.addAction(f"Open {APP_NAME}")
-        open_font = open_action.font()
+        self.tray_open_action = tray_menu.addAction(f"Open {APP_NAME}")
+        open_font = self.tray_open_action.font()
         open_font.setBold(True)
-        open_action.setFont(open_font)
-        open_action.triggered.connect(self._restore_from_tray)
+        self.tray_open_action.setFont(open_font)
+        self.tray_open_action.triggered.connect(self._restore_from_tray)
+
+        self.tray_toggle_action = tray_menu.addAction("Hide to tool bar")
+        self.tray_toggle_action.triggered.connect(self._toggle_hide_to_tray)
 
         tray_menu.addSeparator()
 
@@ -828,14 +847,35 @@ class MainWindow(QMainWindow):
             self._restore_from_tray()
 
     def _restore_from_tray(self) -> None:
-        self.show()
+        if self.isHidden():
+            self.show()
         if self.isMinimized():
             self.showNormal()
+        self.show()
         self.raise_()
         self.activateWindow()
+        if hasattr(self, "tray_toggle_action"):
+            self.tray_toggle_action.setText("Hide to tool bar")
 
-    def _hide_to_tray(self) -> None:
+    def _toggle_hide_to_tray(self) -> None:
+        if self.isHidden():
+            self._restore_from_tray()
+        else:
+            self._hide_to_tray()
+
+    def _hide_to_tray(self) -> bool:
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return False
+        if self.tray_icon.icon().isNull():
+            self.tray_icon.setIcon(
+                self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+            )
+        if not self.tray_icon.isVisible():
+            self.tray_icon.show()
         self.hide()
+        if hasattr(self, "tray_toggle_action"):
+            self.tray_toggle_action.setText(f"Show {APP_NAME}")
+        return True
 
     def _toggle_maximize(self) -> None:
         if self.isMaximized():
@@ -844,6 +884,7 @@ class MainWindow(QMainWindow):
             self.showMaximized()
 
     def _quit_application(self) -> None:
+        self._is_quitting = True
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.worker.wait(3000)
@@ -855,7 +896,8 @@ class MainWindow(QMainWindow):
         if event.type() == QEvent.Type.WindowStateChange:
             is_max = self.isMaximized()
             if hasattr(self, "max_button"):
-                self.max_button.setText("❐" if is_max else "□")
+                if hasattr(self.max_button, "set_icon_type"):
+                    self.max_button.set_icon_type("restore" if is_max else "maximize")
                 self.max_button.setToolTip("Restore" if is_max else "Maximize")
             if hasattr(self, "shell"):
                 self.shell.setProperty("maximized", is_max)
@@ -952,9 +994,26 @@ class MainWindow(QMainWindow):
         return super().eventFilter(obj, event)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        # Hide with a usable tray; otherwise close so the button never becomes a no-op.
+        if not getattr(self, "_is_quitting", False):
+            if self._hide_to_tray():
+                event.ignore()
+                # Show a one-time balloon hint so the user knows where to find the app.
+                if not getattr(self, "_tray_hint_shown", False):
+                    self._tray_hint_shown = True
+                    self.tray_icon.showMessage(
+                        APP_NAME,
+                        "Shortcut Studio is still running. Click the tray icon to reopen it, "
+                        "or right-click for options.",
+                        QSystemTrayIcon.MessageIcon.Information,
+                        4000,
+                    )
+                return
+            self._is_quitting = True
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             if not self.worker.wait(3000):
+                self._is_quitting = False
                 event.ignore()
                 return
         if hasattr(self, "tray_icon") and self.tray_icon:
@@ -971,7 +1030,7 @@ def main() -> int:
     font = QFont("Segoe UI")
     font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
     app.setFont(font)
-    icon_path = Path(__file__).resolve().parent.parent.parent / "assest" / "icon.ico"
+    icon_path = _app_icon_path()
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
     window = MainWindow()

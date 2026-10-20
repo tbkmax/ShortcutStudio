@@ -100,12 +100,10 @@ QPushButton#windowControl, QPushButton#windowMinButton, QPushButton#windowMaxBut
     border: none;
     border-radius: 6px;
     padding: 0px;
-    min-width: 28px;
-    max-width: 28px;
+    min-width: 38px;
+    max-width: 38px;
     min-height: 28px;
     max-height: 28px;
-    font-size: 13px;
-    font-weight: 600;
 }}
 QPushButton#windowControl:hover, QPushButton#windowMinButton:hover, QPushButton#windowMaxButton:hover {{
     background: {SURFACE_ELEVATED};
@@ -120,12 +118,10 @@ QPushButton#windowCloseControl, QPushButton#windowCloseButton {{
     border: none;
     border-radius: 6px;
     padding: 0px;
-    min-width: 28px;
-    max-width: 28px;
+    min-width: 38px;
+    max-width: 38px;
     min-height: 28px;
     max-height: 28px;
-    font-size: 13px;
-    font-weight: 600;
 }}
 QPushButton#windowCloseControl:hover, QPushButton#windowCloseButton:hover {{
     background: #ef4444;

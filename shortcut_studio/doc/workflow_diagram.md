@@ -19,11 +19,11 @@ classDiagram
         -QStackedWidget pages
         -list check_queue
         +show_home()
-        +hide_to_tray()
-        +restore_from_tray()
-        +toggle_maximize()
-        +quit_application()
-        +launch_workflow(source, target, pair_id, check_only)
+        +_hide_to_tray() bool
+        +_restore_from_tray()
+        +_toggle_maximize()
+        +_quit_application()
+        +_launch_workflow(source, target, pair_id, check_only)
         +closeEvent(event)
     }
 
@@ -88,7 +88,7 @@ classDiagram
 ```
 
 ### Explanation
-- [`MainWindow`](../ui/window.py) acts as the coordinator holding references to the [`Database`](../storage/database.py) facade and managing the optional active [`ScanWorker`](../core/worker.py) thread.
+- [`MainWindow`](../ui/window.py) acts as the coordinator holding references to the [`Database`](../storage/database.py) facade and managing the optional active [`ScanWorker`](../core/worker.py) thread. `_hide_to_tray()` repairs a missing tray icon and returns false when Windows has no notification area; `closeEvent()` then quits.
 - The worker executes asynchronously and reports progress via Qt signals without locking the GUI.
 - [`FolderPair`](../models.py), [`PairItem`](../models.py), and [`FolderResult`](../models.py) are immutable value dataclasses that flow between storage, execution, and presentation.
 

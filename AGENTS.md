@@ -1,7 +1,7 @@
 # Agent Operating Guidelines: Shortcut Studio
 
 > **Target Audience**: AI Agents (Antigravity, Claude, ChatGPT, Cursor, etc.) and automated code contributors working within this repository.  
-> **Repository**: `c:\Users\max99\Desktop\myProgram\CreateShortcut`  
+> **Repository**: `c:\Users\max99\Desktop\myProgram\ShortcutStudio`  
 > **Language & Frameworks**: Python 3.11+, PyQt6, SQLite3, Windows COM API (`ctypes.windll.ole32`).
 
 ---
@@ -13,7 +13,7 @@
 The repository is modularized into distinct, single-responsibility layers with backwards-compatible facades at the root:
 
 ```
-CreateShortcut/
+ShortcutStudio/
 ├── AGENTS.md                                # This operating manual
 ├── README.md                                # User-facing setup & usage
 ├── About.txt                                # Product vision & roadmap (MAINTAINED MANUALLY BY REPO OWNER)
@@ -98,12 +98,12 @@ Documentation is scoped hierarchically to avoid monolithic, unmaintainable docum
 
 ## 3. How Templates Work & How to Use Them
 
-The directory [`templates/doc/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/templates/doc/) contains the authoritative master templates. Each template file defines the exact structure, rules, and prompts required for that document type.
+The directory [`templates/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/templates/doc/) contains the authoritative master templates. Each template file defines the exact structure, rules, and prompts required for that document type.
 
 ### 3.1 Initializing a New `doc/` Directory from Templates
 
 When adding documentation to a folder:
-1. Copy the 4 template files from [`templates/doc/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/templates/doc/) into the module's `doc/` folder:
+1. Copy the 4 template files from [`templates/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/templates/doc/) into the module's `doc/` folder:
    - `architecture.md`
    - `workflow_diagram.md`
    - `changelog.md`
@@ -125,7 +125,7 @@ When adding documentation to a folder:
 ### 3.2 Deep Dive: The 4 Documentation Types
 
 #### 1. `architecture.md` (System & Module Architecture)
-- **Source Template**: [`templates/doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/templates/doc/architecture.md)
+- **Source Template**: [`templates/doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/templates/doc/architecture.md)
 - **Purpose**: Explains the system/module purpose, boundaries, components, data flows, and invariants.
 - **Mandatory Requirements**:
   1. Base every statement on current code. **Never hallucinate** nonexistent classes, endpoints, or guarantees.
@@ -139,7 +139,7 @@ When adding documentation to a folder:
   4. Document **Invariants & Safeguards** (e.g., target confinement, path normalization).
 
 #### 2. `workflow_diagram.md` (Visual Architecture)
-- **Source Template**: [`templates/doc/workflow_diagram.md`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/templates/doc/workflow_diagram.md)
+- **Source Template**: [`templates/doc/workflow_diagram.md`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/templates/doc/workflow_diagram.md)
 - **Purpose**: Visualizes workflows, data relationships, and state transitions using Mermaid.
 - **Mandatory Requirements**:
   1. **Class Diagram is Required** (`classDiagram`). Shows classes, attributes, methods, and relationships.
@@ -151,7 +151,7 @@ When adding documentation to a folder:
   4. Every diagram must be accompanied by a clear, plain-language text explanation beneath it.
 
 #### 3. `changelog.md` (Historical Log of Changes)
-- **Source Template**: [`templates/doc/changelog.md`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/templates/doc/changelog.md)
+- **Source Template**: [`templates/doc/changelog.md`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/templates/doc/changelog.md)
 - **Purpose**: Tracks user- and developer-facing modifications chronologically.
 - **Mandatory Requirements**:
   1. Group changes under standard tags: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
@@ -167,7 +167,7 @@ When adding documentation to a folder:
   4. Include a `## Migration and Upgrade Notes` section if schema or operational changes occur (or explicitly state "No operator action required").
 
 #### 4. `backlog.md` (Implementation-Ready Tasks & Tech Debt)
-- **Source Template**: [`templates/doc/backlog.md`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/templates/doc/backlog.md)
+- **Source Template**: [`templates/doc/backlog.md`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/templates/doc/backlog.md)
 - **Purpose**: Actionable backlog of pending work, known defects, and planned improvements.
 - **Mandatory Requirements**:
   1. Organize by priority: `## High Priority`, `## Medium Priority`, `## Low Priority`.
@@ -202,14 +202,14 @@ flowchart TD
 
 | Need to change... | Look at this documentation first | Target Code Directory |
 | :--- | :--- | :--- |
-| **Windows COM link creation, `.lnk` parsing, worker thread** | [`shortcut_studio/core/doc/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/shortcut_studio/core) | `shortcut_studio/core/` (`shell_link.py`, `worker.py`) |
-| **SQLite tables, queries, migrations, JSON import/export** | [`shortcut_studio/storage/doc/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/shortcut_studio/storage) | `shortcut_studio/storage/` (`connection.py`, `schema.py`, `repository.py`, `backup.py`, `database.py`) |
-| **App pages, dialogs, button actions, window events** | [`shortcut_studio/ui/doc/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/shortcut_studio/ui) | `shortcut_studio/ui/` (`window.py`, `pages/`) |
-| **Widgets, cards, typography, layout components** | [`shortcut_studio/ui/doc/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/shortcut_studio/ui) | `shortcut_studio/ui/components/` (`cards.py`, `folder_row.py`, `widgets.py`) |
-| **Colors, dark mode theme, QSS stylesheets** | [`shortcut_studio/ui/doc/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/shortcut_studio/ui) | `shortcut_studio/ui/theme.py` |
-| **Data structures, enums, status types** | [`shortcut_studio/doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/shortcut_studio/doc/architecture.md) | `shortcut_studio/models.py` |
-| **Directory scanning & `.exe` discovery** | [`shortcut_studio/doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/shortcut_studio/doc/architecture.md) | `shortcut_studio/scanner.py` |
-| **Automated tests & test fixtures** | [`tests/`](file:///c:/Users/max99/Desktop/myProgram/CreateShortcut/tests) | `tests/test_core.py` |
+| **Windows COM link creation, `.lnk` parsing, worker thread** | [`shortcut_studio/core/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/shortcut_studio/core) | `shortcut_studio/core/` (`shell_link.py`, `worker.py`) |
+| **SQLite tables, queries, migrations, JSON import/export** | [`shortcut_studio/storage/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/shortcut_studio/storage) | `shortcut_studio/storage/` (`connection.py`, `schema.py`, `repository.py`, `backup.py`, `database.py`) |
+| **App pages, dialogs, button actions, window events** | [`shortcut_studio/ui/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/shortcut_studio/ui) | `shortcut_studio/ui/` (`window.py`, `pages/`) |
+| **Widgets, cards, typography, layout components** | [`shortcut_studio/ui/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/shortcut_studio/ui) | `shortcut_studio/ui/components/` (`cards.py`, `folder_row.py`, `widgets.py`) |
+| **Colors, dark mode theme, QSS stylesheets** | [`shortcut_studio/ui/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/shortcut_studio/ui) | `shortcut_studio/ui/theme.py` |
+| **Data structures, enums, status types** | [`shortcut_studio/doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/shortcut_studio/doc/architecture.md) | `shortcut_studio/models.py` |
+| **Directory scanning & `.exe` discovery** | [`shortcut_studio/doc/architecture.md`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/shortcut_studio/doc/architecture.md) | `shortcut_studio/scanner.py` |
+| **Automated tests & test fixtures** | [`tests/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/tests) | `tests/test_core.py` |
 
 ---
 

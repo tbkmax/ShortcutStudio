@@ -6,6 +6,16 @@ This backlog tracks prioritized improvements, enhancements, and technical debt s
 
 ## High Priority
 
+### - [x] Package a Visible Tray Icon and Guard Close-to-Tray
+- **Completed**: 2026-10-20
+- **Problem or opportunity**: The EXE icon was compiled into the executable but absent as a runtime file, leaving Qt without a usable tray icon after close.
+- **Desired outcome**: The EXE, window, and tray share the scalable game launcher design; close only hides when the tray is usable.
+- **Scope**: `assest/icon.svg`, `assest/icon.ico`, `Shortcut Studio.spec`, `scripts/build.ps1`, `shortcut_studio/ui/window.py`, `tests/test_core.py`.
+- **Acceptance criteria**: (1) ICO contains 16–256 pixel sizes. (2) Packaged runtime resolves its bundled ICO. (3) Close repairs a hidden or missing tray icon and hides with a usable tray. (4) Close quits if no tray exists.
+- **Dependencies and risks**: Rebuild the EXE for packaged users to receive the new icon and runtime data.
+- **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`; `.\scripts\build.ps1`; console startup probe.
+- **Priority**: High (visible app access; low implementation effort).
+
 ### - [x] Implement FIX-2 Custom Frameless Window & System Tray Integration
 - **Completed**: 2026-10-19
 - **Outcome**: Custom frameless window with 12px rounded corners on 4 sides, custom window buttons (minimize, resize, close), and system tray integration with left click restore and right click quit.

@@ -1,1 +1,0 @@
-pyinstaller --name="Shortcut Studio" --windowed --onefile --icon=assest\icon.ico run.py

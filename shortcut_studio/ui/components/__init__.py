@@ -6,7 +6,11 @@ from shortcut_studio.ui.components.cards import (
     build_pair_card,
 )
 from shortcut_studio.ui.components.folder_row import FolderRow
-from shortcut_studio.ui.components.header import HeaderBar, build_header
+from shortcut_studio.ui.components.header import (
+    HeaderBar,
+    WindowControlButton,
+    build_header,
+)
 from shortcut_studio.ui.components.widgets import (
     back_row_layout,
     body_label,
@@ -21,6 +25,7 @@ from shortcut_studio.ui.components.widgets import (
 __all__ = [
     "FolderRow",
     "HeaderBar",
+    "WindowControlButton",
     "build_header",
     "build_dashboard_action",
     "build_pair_card",

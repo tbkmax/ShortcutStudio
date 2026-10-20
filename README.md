@@ -46,6 +46,18 @@ If your Python command is `python` instead of `py`, substitute `python` in both 
 
 The database is stored at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
 
+## Build the Windows EXE
+
+The editable app icon is [`assest/icon.svg`](assest/icon.svg). Its multi-size Windows export is [`assest/icon.ico`](assest/icon.ico). Build through [`scripts/build.ps1`](scripts/build.ps1), which uses the checked-in spec, bundles the icon for the window and tray, and prevents unrelated tools on `PATH` from supplying incompatible Qt libraries.
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt pyinstaller
+.\scripts\build.ps1
+```
+
+The resulting app is `dist\Shortcut Studio.exe`. Clicking its close button hides it in the Windows notification area; use the tray icon to reopen or quit.
+
 ## Run tests
 
 ```powershell

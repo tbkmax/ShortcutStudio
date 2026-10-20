@@ -7,8 +7,9 @@ The `shortcut_studio.ui` package manages the visual presentation, window framing
 ## 1. Subsystem Boundaries and Responsibilities
 
 - **Window Framing & Presentation Engine**: [`MainWindow`](../window.py) runs as a frameless, translucent window (`FramelessWindowHint`, `WA_TranslucentBackground`) with custom 12px rounded corner rendering on all 4 sides.
-- **Top Chrome & Window Controls**: [`HeaderBar`](../components/header.py) provides custom window management controls (minimize to tray, maximize/restore toggle, close), drag-to-move window interaction, double-click maximize toggle, and high-level page navigation.
-- **System Tray Integration**: [`QSystemTrayIcon`](../window.py) maintains background desktop presence in the Windows tool bar / notification area, supporting window hiding on minimize, left-click window restoration, and right-click context menu ("Open Shortcut Studio" and "Quit").
+- **Top Chrome & Window Controls**: [`HeaderBar`](../components/header.py) provides custom window management controls (standard taskbar minimize, maximize/restore toggle, close), drag-to-move window interaction, double-click maximize toggle, and high-level page navigation.
+- **System Tray Integration**: [`QSystemTrayIcon`](../window.py) maintains background desktop presence in the Windows notification area. The close button restores a missing tray icon and hides the window when the tray is available. If Windows has no tray, Close quits cleanly. A one-time balloon notification is shown on first hide. Left-click the tray icon to restore; right-click for "Open Shortcut Studio", "Hide to tool bar", or "Quit".
+- **Application Icon**: [`icon.svg`](../../../assest/icon.svg) is the scalable source artwork. [`icon.ico`](../../../assest/icon.ico) contains 16, 24, 32, 48, 64, 128, and 256 pixel renderings for the EXE, window, and tray. [`_app_icon_path()`](../window.py) resolves the icon from source or PyInstaller's `_MEIPASS` extraction directory; [`Shortcut Studio.spec`](../../../Shortcut%20Studio.spec) bundles the ICO and [`scripts/build.ps1`](../../../scripts/build.ps1) verifies it in the EXE.
 - **Page Navigation State Machine**: `QStackedWidget` hosts 10 specialized pages with centralized page routing orchestrated by `MainWindow`.
 - **Theming & Design Contracts**: [`theme.py`](../theme.py) defines strict color tokens, typography scales, border radii, and dark QSS stylesheets matching [`DESIGN.md`](../../doc/DESIGN.md).
 
@@ -40,8 +41,10 @@ The window operates without native OS chrome:
 
 ## 4. System Tray Integration
 
-- When the minimize button (`windowMinButton`) is clicked, `_hide_to_tray()` hides the main window from the screen and taskbar (`self.hide()`).
+- **Close button hides to tray when available**: `closeEvent` calls `_hide_to_tray()`. That method checks `QSystemTrayIcon.isSystemTrayAvailable()`, supplies a Qt standard icon if necessary, and re-shows a hidden tray icon before hiding the window. If Windows has no tray, the close event follows normal shutdown, including bounded worker cancellation. The tray menu's "Quit" also exits the process.
+- **One-time balloon hint**: The first time the window hides to tray (tracked by `_tray_hint_shown`), a `showMessage()` balloon is displayed so the user knows to look in the system tray.
 - `QApplication.setQuitOnLastWindowClosed(False)` ensures the Qt event loop continues running while hidden.
-- **Left-Click (Activation)**: Invokes `_restore_from_tray()`, restoring the window geometry, bringing it to the front, and activating focus.
-- **Right-Click (Context Menu)**: Displays `QMenu` offering bold "Open Shortcut Studio" and "Quit".
-- **Clean Shutdown**: `_quit_application()` and `closeEvent` safely cancel running background workers with a bounded wait (`worker.wait(3000)`), hide the tray icon, and call `QApplication.instance().quit()`.
+- **Left-Click (Activation)**: Invokes `_restore_from_tray()`, restoring the window, bringing it to the front, and activating focus.
+- **Right-Click (Context Menu)**: Displays `QMenu` offering bold "Open Shortcut Studio", "Hide to tool bar" (toggle), and "Quit".
+- **Minimize button** (`windowMinButton`): Calls `showMinimized()` — standard Windows taskbar minimize (unchanged).
+- **Clean Shutdown**: `_quit_application()` sets `_is_quitting = True`, cancels any running worker (bounded `worker.wait(3000)`), hides the tray icon, and calls `QApplication.instance().quit()`.

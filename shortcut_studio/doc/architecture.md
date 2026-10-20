@@ -13,7 +13,9 @@ Shortcut Studio is a desktop application for Windows that organizes and automate
   - Windows Shell Link COM Interface (`IShellLinkW`, `IPersistFile`) invoked directly via `ctypes.windll.ole32`.
   - Windows file launching via `os.startfile`.
   - Native Windows file icons via `PyQt6.QtWidgets.QFileIconProvider`.
-  - System tray integration via `PyQt6.QtWidgets.QSystemTrayIcon` supporting toolbar hiding on minimize, left-click restoration, and right-click exit context menu.
+  - System tray integration via `PyQt6.QtWidgets.QSystemTrayIcon` supporting close-to-tray when available, left-click restoration, and right-click exit context menu.
+  - Scalable icon source (`assest/icon.svg`) with a multi-resolution ICO bundled into the PyInstaller EXE and as runtime data for the window and tray.
+  - [`scripts/build.ps1`](../../scripts/build.ps1) builds the EXE with a controlled Windows/virtual-environment `PATH` so third-party ICU DLLs do not replace the system ICU used by Qt.
   - Frameless custom window framing (`FramelessWindowHint`, `WA_TranslucentBackground`) with 12px rounded corners adhering to `DESIGN.md`.
 
 ---
@@ -90,6 +92,8 @@ shortcut_studio/
 | **Worker Engine** | [`core/worker.py`](../core/worker.py) | Background `QThread` executing scanning, sync, and condition-variable pause. | `ScanWorker`, `choose()`, `cancel()` |
 | **Storage Engine** | [`storage/database.py`](../storage/database.py) | Manages SQLite connection, schema DDL, repository operations, and JSON backups. | `Database`, `PairRepository`, `RunRepository`, `SettingsRepository` |
 | **UI Presentation** | [`ui/window.py`](../ui/window.py) | Coordinates navigation across 10 pages, renders themes, and handles window lifecycle. | `MainWindow`, `main()` |
+| **Application Icon** | [`../assest/icon.svg`](../../assest/icon.svg), [`../assest/icon.ico`](../../assest/icon.ico) | Source artwork and multi-resolution Windows icon used by the EXE, window, and tray. | `_app_icon_path()` in `ui/window.py` |
+| **Windows Build** | [`../scripts/build.ps1`](../../scripts/build.ps1) | Builds and verifies the one-file EXE from the checked-in spec. | `PyInstaller`, `CArchiveReader` |
 
 ---
 
@@ -126,5 +130,7 @@ shortcut_studio/
    - Folder paths are indexed using `os.path.normcase(os.path.abspath(path))` (`_path_key`) to prevent duplicate records on case-insensitive Windows filesystems.
 3. **Database Concurrency & Foreign Keys**:
    - Every SQLite connection explicitly enables `PRAGMA foreign_keys = ON` to enforce cascade deletion of runs, results, and pair items.
-4. **Graceful Thread Shutdown**:
+4. **Tray Visibility Safeguard**:
+   - `MainWindow` restores a missing tray icon before hiding on close. If no system tray exists, Close quits cleanly instead of leaving an unresponsive window.
+5. **Graceful Thread Shutdown**:
    - `MainWindow.closeEvent` invokes `worker.cancel()` and performs a bounded wait (`worker.wait(3000)`), preventing crashes or resource leaks upon closing during active processing.
