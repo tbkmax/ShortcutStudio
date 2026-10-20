@@ -15,6 +15,7 @@ from shortcut_studio.ui.theme import (
     RED,
     SOFT,
     STYLESHEET,
+    SURFACE_ELEVATED,
     WHITE,
 )
 from shortcut_studio.ui.window import MainWindow, main
@@ -34,6 +35,7 @@ __all__ = [
     "GREEN",
     "ORANGE",
     "RED",
+    "SURFACE_ELEVATED",
     "STYLESHEET",
 ]
 

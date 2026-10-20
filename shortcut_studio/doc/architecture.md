@@ -13,6 +13,8 @@ Shortcut Studio is a desktop application for Windows that organizes and automate
   - Windows Shell Link COM Interface (`IShellLinkW`, `IPersistFile`) invoked directly via `ctypes.windll.ole32`.
   - Windows file launching via `os.startfile`.
   - Native Windows file icons via `PyQt6.QtWidgets.QFileIconProvider`.
+  - System tray integration via `PyQt6.QtWidgets.QSystemTrayIcon` supporting toolbar hiding on minimize, left-click restoration, and right-click exit context menu.
+  - Frameless custom window framing (`FramelessWindowHint`, `WA_TranslucentBackground`) with 12px rounded corners adhering to `DESIGN.md`.
 
 ---
 

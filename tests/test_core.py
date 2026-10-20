@@ -270,6 +270,56 @@ class MainWindowTests(unittest.TestCase):
             self.assertTrue(hasattr(window, "home_choose_check_button"))
             self.assertEqual(window.home_choose_check_button.text(), "Choose pair")
 
+    def test_frameless_window_and_translucent_background(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from PyQt6.QtCore import Qt
+            from shortcut_studio.app import MainWindow
+            db_path = Path(temporary) / "ui_test.db"
+            window = MainWindow(database_path=db_path)
+            self.assertTrue(bool(window.windowFlags() & Qt.WindowType.FramelessWindowHint))
+            self.assertTrue(window.testAttribute(Qt.WidgetAttribute.WA_TranslucentBackground))
+
+    def test_custom_window_buttons_and_maximize_toggle(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from shortcut_studio.app import MainWindow
+            db_path = Path(temporary) / "ui_test.db"
+            window = MainWindow(database_path=db_path)
+            self.assertTrue(hasattr(window, "min_button"))
+            self.assertTrue(hasattr(window, "max_button"))
+            self.assertTrue(hasattr(window, "close_button"))
+            self.assertEqual(window.min_button.objectName(), "windowMinButton")
+            self.assertEqual(window.max_button.objectName(), "windowMaxButton")
+            self.assertEqual(window.close_button.objectName(), "windowCloseButton")
+            self.assertEqual(window.max_button.text(), "□")
+
+            # Test maximize toggle
+            window._toggle_maximize()
+            self.assertTrue(window.isMaximized())
+            self.assertEqual(window.max_button.text(), "❐")
+            window._toggle_maximize()
+            self.assertFalse(window.isMaximized())
+            self.assertEqual(window.max_button.text(), "□")
+
+    def test_system_tray_icon_and_hide_restore(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            from shortcut_studio.app import MainWindow
+            db_path = Path(temporary) / "ui_test.db"
+            window = MainWindow(database_path=db_path)
+            self.assertTrue(hasattr(window, "tray_icon"))
+            menu = window.tray_icon.contextMenu()
+            self.assertIsNotNone(menu)
+            action_texts = [act.text() for act in menu.actions() if act.text()]
+            self.assertIn("Open Shortcut Studio", action_texts)
+            self.assertIn("Quit", action_texts)
+
+            # Test hiding to tray and restoring
+            window.show()
+            self.assertFalse(window.isHidden())
+            window._hide_to_tray()
+            self.assertTrue(window.isHidden())
+            window._restore_from_tray()
+            self.assertFalse(window.isHidden())
+
 
 if __name__ == "__main__":
     unittest.main()

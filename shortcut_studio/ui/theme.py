@@ -11,6 +11,7 @@ MUTED = "#7d8187"
 GREEN = "#48d597"
 ORANGE = "#ff7a17"
 RED = "#ff6b6b"
+SURFACE_ELEVATED = "#242424"
 
 STYLESHEET = f"""
 * {{
@@ -18,8 +19,40 @@ STYLESHEET = f"""
     font-size: 14px;
     font-weight: 400;
 }}
-QMainWindow, QWidget {{ background: {CANVAS}; color: {WHITE}; }}
-#header {{ border-bottom: 1px solid {HAIRLINE}; }}
+QMainWindow {{
+    background: transparent;
+}}
+#shell {{
+    background: {CANVAS};
+    border: 1px solid {HAIRLINE};
+    border-radius: 12px;
+}}
+#shell[maximized="true"] {{
+    border: none;
+    border-radius: 0px;
+}}
+#header {{
+    background: {CANVAS};
+    border-bottom: 1px solid {HAIRLINE};
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}}
+#header[maximized="true"] {{
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+}}
+#pages {{
+    background: {CANVAS};
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}}
+#pages[maximized="true"] {{
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}}
+QWidget {{
+    color: {WHITE};
+}}
 #brand, #eyebrow {{
     font-family: Consolas, "Cascadia Mono", monospace;
     font-size: 12px;
@@ -54,11 +87,55 @@ QPushButton#primaryButton {{ background: {WHITE}; color: {CANVAS}; border-color:
 QPushButton#primaryButton:hover {{ background: #e8e8e5; }}
 QPushButton#navButton {{
     border: none;
+    border-radius: 6px;
     padding: 6px 10px;
     min-height: 16px;
 }}
 QPushButton#navButton:hover {{ background: {SOFT}; }}
 QPushButton#dangerButton {{ color: {RED}; }}
+
+QPushButton#windowControl, QPushButton#windowMinButton, QPushButton#windowMaxButton {{
+    background: transparent;
+    color: {MUTED};
+    border: none;
+    border-radius: 6px;
+    padding: 0px;
+    min-width: 28px;
+    max-width: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    font-size: 13px;
+    font-weight: 600;
+}}
+QPushButton#windowControl:hover, QPushButton#windowMinButton:hover, QPushButton#windowMaxButton:hover {{
+    background: {SURFACE_ELEVATED};
+    color: {WHITE};
+}}
+QPushButton#windowControl:pressed, QPushButton#windowMinButton:pressed, QPushButton#windowMaxButton:pressed {{
+    background: {CARD};
+}}
+QPushButton#windowCloseControl, QPushButton#windowCloseButton {{
+    background: transparent;
+    color: {MUTED};
+    border: none;
+    border-radius: 6px;
+    padding: 0px;
+    min-width: 28px;
+    max-width: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    font-size: 13px;
+    font-weight: 600;
+}}
+QPushButton#windowCloseControl:hover, QPushButton#windowCloseButton:hover {{
+    background: #ef4444;
+    color: {WHITE};
+}}
+QPushButton#windowCloseControl:pressed, QPushButton#windowCloseButton:pressed {{
+    background: #dc2626;
+    color: {WHITE};
+}}
+
 QFrame#card, QFrame#folderRow, QFrame#dashboardCard {{
     background: {CARD};
     border: 1px solid {HAIRLINE};
@@ -108,4 +185,28 @@ QHeaderView::section {{
 #pairPathMuted {{ color: {MUTED}; }}
 #itemTitle {{ font-size: 16px; color: {WHITE}; }}
 QMessageBox {{ background: {CANVAS}; }}
+
+QMenu {{
+    background-color: {CARD};
+    border: 1px solid {HAIRLINE};
+    border-radius: 8px;
+    padding: 4px;
+    color: {WHITE};
+}}
+QMenu::item {{
+    background: transparent;
+    padding: 6px 18px 6px 12px;
+    border-radius: 4px;
+    color: {BODY};
+    font-size: 13px;
+}}
+QMenu::item:selected {{
+    background-color: {SURFACE_ELEVATED};
+    color: {WHITE};
+}}
+QMenu::separator {{
+    height: 1px;
+    background: {HAIRLINE};
+    margin: 4px 6px;
+}}
 """

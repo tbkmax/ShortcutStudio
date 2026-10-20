@@ -14,9 +14,15 @@ classDiagram
     class MainWindow {
         -Database database
         -ScanWorker worker
+        -QSystemTrayIcon tray_icon
+        -HeaderBar header_widget
         -QStackedWidget pages
         -list check_queue
         +show_home()
+        +hide_to_tray()
+        +restore_from_tray()
+        +toggle_maximize()
+        +quit_application()
         +launch_workflow(source, target, pair_id, check_only)
         +closeEvent(event)
     }

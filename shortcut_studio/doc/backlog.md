@@ -14,13 +14,26 @@ This backlog records prioritized engineering tasks, architectural milestones, an
 
 ## High Priority
 
-### - [ ] Implement Submodule Documentation Suites (`storage/doc/`, `core/doc/`, `ui/doc/`)
-- **Problem or opportunity**: Shortcut Studio has been refactored into modular subpackages (`storage`, `core`, `ui`). The package-level documentation in `shortcut_studio/doc/` provides the high-level system view, but each submodule should host its own detailed documentation covering internal invariants, schema details, and UI state management.
-- **Desired outcome**: Dedicated `doc/` directories inside `shortcut_studio/storage/doc/`, `shortcut_studio/core/doc/`, and `shortcut_studio/ui/doc/` specifying module-level details.
+### - [x] FIX-2: Custom Frameless Window Behavior & System Tray Integration
+- **Problem or opportunity**: Window used default OS chrome without system tray support or theme alignment.
+- **Desired outcome**: Frameless window with custom minimize, resize, and close buttons, 12px rounded corners on all 4 sides adhering to `DESIGN.md`, and system tray hiding with left-click restore and right-click quit.
+- **Scope**: `shortcut_studio/ui/window.py`, `shortcut_studio/ui/theme.py`, `shortcut_studio/ui/components/header.py`, `tests/test_core.py`.
+- **Acceptance criteria**:
+  1. Window has `FramelessWindowHint` and translucent background.
+  2. All 4 sides render 12px rounded borders.
+  3. Custom minimize button hides window to system tray; left-click on tray icon restores window; right-click displays "Quit".
+  4. Custom resize button toggles maximize/restore; header bar is draggable and double-click maximizes.
+  5. Automated unit tests validate frameless hints, buttons, tray actions, and restore.
+- **Verification**: `python -m unittest discover -s tests -v` (16/16 tests pass).
+- **Priority**: High (Completed on 2026-10-19).
+
+### - [ ] Implement Submodule Documentation Suites (`storage/doc/`, `core/doc/`)
+- **Problem or opportunity**: Shortcut Studio has been refactored into modular subpackages (`storage`, `core`, `ui`). The package-level documentation in `shortcut_studio/doc/` provides the high-level system view; `ui/doc/` has been implemented, while `storage/doc/` and `core/doc/` remain pending.
+- **Desired outcome**: Dedicated `doc/` directories inside `shortcut_studio/storage/doc/` and `shortcut_studio/core/doc/`.
 - **Scope**:
   - `shortcut_studio/storage/doc/` (`architecture.md`, `changelog.md`)
   - `shortcut_studio/core/doc/` (`architecture.md`, `changelog.md`)
-  - `shortcut_studio/ui/doc/` (`architecture.md`, `changelog.md`)
+  - Note: `shortcut_studio/ui/doc/` completed.
 - **Acceptance criteria**:
   1. Each subpackage contains a targeted `doc/` folder adhering to engineering templates.
   2. Storage documentation details SQLite schema, migration history, and repository queries.

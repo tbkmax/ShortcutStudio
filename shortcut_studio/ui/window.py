@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import QFileInfo, QSize, Qt
+from PyQt6.QtCore import QEvent, QFileInfo, QPoint, QRect, QSize, Qt
 from PyQt6.QtGui import QCloseEvent, QFont, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
@@ -17,12 +17,14 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
     QScrollArea,
     QSizePolicy,
     QStackedWidget,
+    QSystemTrayIcon,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -72,6 +74,14 @@ from shortcut_studio.ui.theme import (
 )
 
 
+RESIZE_MARGIN = 6
+EDGE_NONE = 0
+EDGE_LEFT = 1
+EDGE_TOP = 2
+EDGE_RIGHT = 4
+EDGE_BOTTOM = 8
+
+
 class MainWindow(QMainWindow):
     """Main desktop application window for Shortcut Studio."""
 
@@ -80,6 +90,17 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(APP_NAME)
         self.setMinimumSize(820, 620)
         self.resize(980, 720)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setMouseTracking(True)
+
+        icon_path = Path(__file__).resolve().parent.parent.parent / "assest" / "icon.ico"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
+
+        self._resize_edge = EDGE_NONE
+        self._drag_start_geom: QRect | None = None
+        self._drag_start_pos: QPoint | None = None
 
         local_data = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
         self.database = Database(
@@ -101,11 +122,17 @@ class MainWindow(QMainWindow):
         self.nav_buttons: list[QPushButton] = []
 
         shell = QWidget()
+        shell.setObjectName("shell")
+        shell.setMouseTracking(True)
+        shell.installEventFilter(self)
+        self.shell = shell
+
         shell_layout = QVBoxLayout(shell)
         shell_layout.setContentsMargins(0, 0, 0, 0)
         shell_layout.setSpacing(0)
         shell_layout.addWidget(self._build_header())
         self.pages = QStackedWidget()
+        self.pages.setObjectName("pages")
         self.home_page = self._build_home_page()
         self.setup_page = self._build_setup_page()
         self.check_page = self._build_check_page()
@@ -132,6 +159,7 @@ class MainWindow(QMainWindow):
         shell_layout.addWidget(self.pages)
         self.setCentralWidget(shell)
         self.setStyleSheet(STYLESHEET)
+        self._setup_tray_icon()
 
     def _build_header(self) -> QWidget:
         return build_header(self)
@@ -766,22 +794,186 @@ class MainWindow(QMainWindow):
         self.target_field.clear()
         self._show_home()
 
+    def _setup_tray_icon(self) -> None:
+        self.tray_icon = QSystemTrayIcon(self)
+        icon_path = Path(__file__).resolve().parent.parent.parent / "assest" / "icon.ico"
+        if icon_path.exists():
+            icon = QIcon(str(icon_path))
+        else:
+            icon = self.windowIcon()
+        self.tray_icon.setIcon(icon)
+        self.tray_icon.setToolTip(APP_NAME)
+
+        tray_menu = QMenu(self)
+        open_action = tray_menu.addAction(f"Open {APP_NAME}")
+        open_font = open_action.font()
+        open_font.setBold(True)
+        open_action.setFont(open_font)
+        open_action.triggered.connect(self._restore_from_tray)
+
+        tray_menu.addSeparator()
+
+        quit_action = tray_menu.addAction("Quit")
+        quit_action.triggered.connect(self._quit_application)
+
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self._on_tray_activated)
+        self.tray_icon.show()
+
+    def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
+        if reason in (
+            QSystemTrayIcon.ActivationReason.Trigger,
+            QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            self._restore_from_tray()
+
+    def _restore_from_tray(self) -> None:
+        self.show()
+        if self.isMinimized():
+            self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def _hide_to_tray(self) -> None:
+        self.hide()
+
+    def _toggle_maximize(self) -> None:
+        if self.isMaximized():
+            self.showNormal()
+        else:
+            self.showMaximized()
+
+    def _quit_application(self) -> None:
+        if self.worker and self.worker.isRunning():
+            self.worker.cancel()
+            self.worker.wait(3000)
+        if hasattr(self, "tray_icon") and self.tray_icon:
+            self.tray_icon.hide()
+        QApplication.instance().quit()
+
+    def changeEvent(self, event: QEvent) -> None:
+        if event.type() == QEvent.Type.WindowStateChange:
+            is_max = self.isMaximized()
+            if hasattr(self, "max_button"):
+                self.max_button.setText("❐" if is_max else "□")
+                self.max_button.setToolTip("Restore" if is_max else "Maximize")
+            if hasattr(self, "shell"):
+                self.shell.setProperty("maximized", is_max)
+                self.shell.style().unpolish(self.shell)
+                self.shell.style().polish(self.shell)
+            if hasattr(self, "header_widget"):
+                self.header_widget.setProperty("maximized", is_max)
+                self.header_widget.style().unpolish(self.header_widget)
+                self.header_widget.style().polish(self.header_widget)
+            if hasattr(self, "pages"):
+                self.pages.setProperty("maximized", is_max)
+                self.pages.style().unpolish(self.pages)
+                self.pages.style().polish(self.pages)
+        super().changeEvent(event)
+
+    def _determine_edge(self, pos: QPoint) -> int:
+        margin = RESIZE_MARGIN
+        w, h = self.width(), self.height()
+        edge = EDGE_NONE
+        if pos.x() <= margin:
+            edge |= EDGE_LEFT
+        if pos.x() >= w - margin:
+            edge |= EDGE_RIGHT
+        if pos.y() <= margin:
+            edge |= EDGE_TOP
+        if pos.y() >= h - margin:
+            edge |= EDGE_BOTTOM
+        return edge
+
+    def eventFilter(self, obj, event: QEvent) -> bool:
+        if obj is getattr(self, "shell", None):
+            event_type = event.type()
+            if event_type == QEvent.Type.MouseMove:
+                if self._resize_edge != EDGE_NONE:
+                    diff = event.globalPosition().toPoint() - self._drag_start_pos
+                    geom = QRect(self._drag_start_geom)
+                    min_w, min_h = self.minimumWidth(), self.minimumHeight()
+
+                    if self._resize_edge & EDGE_LEFT:
+                        new_left = geom.left() + diff.x()
+                        if geom.right() - new_left >= min_w:
+                            geom.setLeft(new_left)
+                        else:
+                            geom.setLeft(geom.right() - min_w)
+                    if self._resize_edge & EDGE_RIGHT:
+                        new_right = geom.right() + diff.x()
+                        if new_right - geom.left() >= min_w:
+                            geom.setRight(new_right)
+                        else:
+                            geom.setRight(geom.left() + min_w)
+                    if self._resize_edge & EDGE_TOP:
+                        new_top = geom.top() + diff.y()
+                        if geom.bottom() - new_top >= min_h:
+                            geom.setTop(new_top)
+                        else:
+                            geom.setTop(geom.bottom() - min_h)
+                    if self._resize_edge & EDGE_BOTTOM:
+                        new_bottom = geom.bottom() + diff.y()
+                        if new_bottom - geom.top() >= min_h:
+                            geom.setBottom(new_bottom)
+                        else:
+                            geom.setBottom(geom.top() + min_h)
+
+                    self.setGeometry(geom)
+                    return True
+                elif not self.isMaximized():
+                    edge = self._determine_edge(event.position().toPoint())
+                    if edge in (EDGE_LEFT, EDGE_RIGHT):
+                        self.setCursor(Qt.CursorShape.SizeHorCursor)
+                    elif edge in (EDGE_TOP, EDGE_BOTTOM):
+                        self.setCursor(Qt.CursorShape.SizeVerCursor)
+                    elif edge in (EDGE_LEFT | EDGE_TOP, EDGE_RIGHT | EDGE_BOTTOM):
+                        self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+                    elif edge in (EDGE_RIGHT | EDGE_TOP, EDGE_LEFT | EDGE_BOTTOM):
+                        self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+                    else:
+                        self.unsetCursor()
+            elif event_type == QEvent.Type.MouseButtonPress:
+                if not self.isMaximized() and event.button() == Qt.MouseButton.LeftButton:
+                    edge = self._determine_edge(event.position().toPoint())
+                    if edge != EDGE_NONE:
+                        self._resize_edge = edge
+                        self._drag_start_geom = self.geometry()
+                        self._drag_start_pos = event.globalPosition().toPoint()
+                        return True
+            elif event_type == QEvent.Type.MouseButtonRelease:
+                if self._resize_edge != EDGE_NONE:
+                    self._resize_edge = EDGE_NONE
+                    self.unsetCursor()
+                    return True
+            elif event_type == QEvent.Type.Leave:
+                if self._resize_edge == EDGE_NONE:
+                    self.unsetCursor()
+        return super().eventFilter(obj, event)
+
     def closeEvent(self, event: QCloseEvent) -> None:
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             if not self.worker.wait(3000):
                 event.ignore()
                 return
+        if hasattr(self, "tray_icon") and self.tray_icon:
+            self.tray_icon.hide()
         event.accept()
+        QApplication.instance().quit()
 
 
 def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
+    app.setQuitOnLastWindowClosed(False)
     app.setStyle("Fusion")
     font = QFont("Segoe UI")
     font.setStyleStrategy(QFont.StyleStrategy.PreferAntialias)
     app.setFont(font)
+    icon_path = Path(__file__).resolve().parent.parent.parent / "assest" / "icon.ico"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
     window = MainWindow()
     window.show()
     return app.exec()

@@ -8,6 +8,13 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 ### Added
 
+#### 2026-10-19 - FIX-2 Window Behavior & Frameless Rounded Theme
+- Transformed [`MainWindow`](../ui/window.py) into a frameless window (`FramelessWindowHint`) with translucent background (`WA_TranslucentBackground`) and smooth 12px rounded corner styling across all 4 sides adhering to [`DESIGN.md`](./DESIGN.md).
+- Replaced native Windows titlebar controls with custom header controls in [`HeaderBar`](../ui/components/header.py): custom minimize (`windowMinButton`), custom resize/maximize toggle (`windowMaxButton`), and custom close (`windowCloseButton`).
+- Implemented system tray integration (`QSystemTrayIcon`) supporting hiding to tool bar on minimize, left-click restoration, and right-click context menu with "Quit" and "Open".
+- Added frameless edge resizing (mouse tracking across 4 borders and corners) and header bar dragging / double-click maximize toggle.
+- Added dark QSS styles for `#shell`, `#pages`, `#header`, window controls, and right-click tray context menu in [`shortcut_studio.ui.theme`](../ui/theme.py).
+
 #### 2026-10-18 - Agent Operating Guidelines (AGENTS.md)
 - Created root [`AGENTS.md`](../../AGENTS.md) defining standard operating procedures, documentation templates usage, mandatory per-folder `doc/` hierarchy, zero-guess target file navigation, and quality assurance checklists for AI agents.
 
