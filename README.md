@@ -1,55 +1,36 @@
-# Shortcut Studio
+![Shortcut Studio banner](assest/readme-banner.svg)
 
-Shortcut Studio is a Windows desktop app that turns a folder of applications into a tidy folder of native `.lnk` shortcuts.
+<h1 align="center">Shortcut Studio</h1>
 
-## What it does
+<p align="center">Clean shortcuts for every app in your library.</p>
 
-- Treats each immediate subfolder in the source folder as one application.
-- Searches recursively inside each application folder for `.exe` files.
-- Also detects Windows shortcuts whose visible name ends in `.exe` (for example, an actual file named `game_start.exe.lnk`).
-- Automatically uses the executable when exactly one is found.
-- Shows native Windows icons and asks you to choose when multiple executables are found.
-- Names each shortcut after its application folder and uses the executable's original icon.
-- Records each run and folder result in a local SQLite database.
-- Supports Simplified/Traditional Chinese, Japanese, and other Unicode names and paths.
-- Saves each source/target folder pair for future checks.
-- Checks one saved library or all saved libraries in a single run.
-- Recreates missing shortcuts, detects newly added application folders, and removes saved shortcuts when their original source folders have been deleted.
-- Provides a List page where saved pairs and their history can be removed without deleting files.
-- Provides a Test button beside each executable candidate so it can be opened before selection.
-- Preserves existing Windows shortcuts unchanged, including their arguments, working directory, icon, and special launcher behavior.
-- Provides an Edit page showing every generated shortcut, its source subfolder, icon, and selected launch file; changing a selection updates the shortcut and icon together.
-- Provides a Settings page for opening the database folder and importing or exporting saved pairs, executable choices, and preferences as Unicode JSON.
-- Can optionally open the target folder after completion and make pair deletion confirmation optional.
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#build-the-exe">Build the EXE</a> ·
+  <a href="#run-tests">Run tests</a>
+</p>
 
-The top menu contains **Start New**, **Check**, **Edit**, **List**, and **Settings**.
+Shortcut Studio turns a folder of applications into a tidy library of native Windows `.lnk` shortcuts. It runs locally and keeps your library settings in SQLite.
 
-The home screen is a desktop-style dashboard showing the number of saved libraries, the most recent pair, and quick actions. Every menu destination includes a Back button to return to this dashboard.
+## What you can do
 
-Starting a new run with an already-saved source/target pair automatically performs a Check instead of rebuilding every shortcut.
+- **Create shortcuts quickly.** Scan application folders for `.exe` files and executable-named `.lnk` files. Choose a launcher when there is more than one.
+- **Keep libraries current.** Check one saved folder pair or all of them to add new shortcuts, repair missing ones, and clean up shortcuts for removed source folders.
+- **Manage your choices.** Edit launch targets, inspect run history, and import or export your saved setup as JSON.
+- **Stay in control.** Existing Windows shortcuts retain their arguments, working directories, and icons. Closing the window hides the app in the system tray.
 
-## Requirements
+## Quick start
 
-- Windows 10 or Windows 11
-- Python 3.11 or newer
-
-## Run the app
-
-Open PowerShell in this folder and run:
+Requires **Windows 10/11** and **Python 3.11+**. In PowerShell, from the repository root:
 
 ```powershell
 py -m pip install .
 py run.py
 ```
 
-If your Python command is `python` instead of `py`, substitute `python` in both commands.
-The installed package also provides a `shortcut-studio` GUI command.
+The installed package also provides a `shortcut-studio` GUI command. Your database is stored at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
 
-The database is stored at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
-
-## Build the Windows EXE
-
-The editable app icon is [`shortcut_studio/assets/icon.svg`](shortcut_studio/assets/icon.svg). Its multi-size Windows export is [`shortcut_studio/assets/icon.ico`](shortcut_studio/assets/icon.ico). Build through [`scripts/build.ps1`](scripts/build.ps1), which uses [`scripts/Shortcut Studio.spec`](scripts/Shortcut%20Studio.spec), bundles the icon for the window and tray, and prevents unrelated tools on `PATH` from supplying incompatible Qt libraries.
+## Build the EXE
 
 ```powershell
 py -m venv .venv
@@ -57,7 +38,7 @@ py -m venv .venv
 .\scripts\build.ps1
 ```
 
-The resulting app is `dist\Shortcut Studio.exe`. Clicking its close button hides it in the Windows notification area; use the tray icon to reopen or quit.
+The build produces `dist\Shortcut Studio.exe`. The icon source is [`shortcut_studio/assets/icon.svg`](shortcut_studio/assets/icon.svg); the build configuration lives in [`scripts/Shortcut Studio.spec`](scripts/Shortcut%20Studio.spec).
 
 ## Run tests
 

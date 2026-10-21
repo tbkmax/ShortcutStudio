@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+  <title id="title">Shortcut Studio</title>
+  <desc id="desc">Gamepad icon beside an organized application library.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1"><stop stop-color="#14283b"/><stop offset="1" stop-color="#09131f"/></linearGradient>
+    <linearGradient id="iconTile" x2="1" y2="1"><stop stop-color="#18283d"/><stop offset="1" stop-color="#0b1423"/></linearGradient>
+    <linearGradient id="controller" x2="1" y2="1"><stop stop-color="#f7fbff"/><stop offset="1" stop-color="#cbdbe7"/></linearGradient>
+    <clipPath id="frame"><rect width="1200" height="320" rx="26"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="320" fill="url(#background)"/>
+    <circle cx="1120" cy="-80" r="300" fill="#13baa9" opacity=".09"/>
+    <circle cx="1200" cy="330" r="230" fill="#f17c4a" opacity=".07"/>
+    <path d="M790 0 630 320M990 0 830 320M1190 0 1030 320" stroke="#6fa2b1" stroke-opacity=".08" stroke-width="2"/>
+    <g transform="translate(52 53) scale(.82)">
+      <rect x="8" y="8" width="240" height="240" rx="54" fill="url(#iconTile)"/>
+      <rect x="10" y="10" width="236" height="236" rx="52" fill="none" stroke="#365269" stroke-width="4"/>
+      <path d="M69 91c-16 0-28 10-32 25l-17 63c-5 19 7 35 25 35 10 0 18-4 26-13l23-27h68l23 27c8 9 16 13 26 13 18 0 30-16 25-35l-17-63c-4-15-16-25-32-25H69Z" fill="url(#controller)"/>
+      <path d="M78 121v38M59 140h38" stroke="#183449" stroke-width="13" stroke-linecap="round"/>
+      <circle cx="182" cy="128" r="10" fill="#13baa9"/>
+      <circle cx="201" cy="149" r="10" fill="#13baa9"/>
+      <path d="M117 123v25l26-12.5Z" fill="#f17c4a"/>
+      <path d="M114 91h28" stroke="#81a7b3" stroke-width="6" stroke-linecap="round"/>
+    </g>
+    <rect x="325" y="45" width="760" height="230" rx="20" fill="#112638" stroke="#315265" stroke-width="2"/>
+    <circle cx="361" cy="76" r="6" fill="#f17c4a"/>
+    <circle cx="382" cy="76" r="6" fill="#e5b86c"/>
+    <circle cx="403" cy="76" r="6" fill="#13baa9"/>
+    <rect x="435" y="70" width="142" height="12" rx="6" fill="#426579"/>
+    <path d="M326 98h758" stroke="#2a4659" stroke-width="2"/>
+
+    <rect x="350" y="112" width="710" height="42" rx="10" fill="#1a3548"/>
+    <rect x="365" y="121" width="24" height="24" rx="6" fill="#386d7c"/>
+    <path d="M371 133h12M377 127v12" stroke="#c9e8ec" stroke-width="3" stroke-linecap="round"/>
+    <rect x="408" y="122" width="225" height="9" rx="4.5" fill="#aec8d4"/>
+    <rect x="408" y="137" width="135" height="6" rx="3" fill="#507185"/>
+    <circle cx="1019" cy="133" r="12" fill="#15554f"/>
+    <path d="m1013 133 4 4 8-9" fill="none" stroke="#72e1d4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="350" y="165" width="710" height="42" rx="10" fill="#1a3548"/>
+    <rect x="365" y="174" width="24" height="24" rx="6" fill="#765046"/>
+    <path d="m373 180 10 6-10 6z" fill="#ffd1b6"/>
+    <rect x="408" y="175" width="190" height="9" rx="4.5" fill="#aec8d4"/>
+    <rect x="408" y="190" width="163" height="6" rx="3" fill="#507185"/>
+    <circle cx="1019" cy="186" r="12" fill="#15554f"/>
+    <path d="m1013 186 4 4 8-9" fill="none" stroke="#72e1d4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="350" y="218" width="710" height="42" rx="10" fill="#1a3548"/>
+    <rect x="365" y="227" width="24" height="24" rx="6" fill="#505b78"/>
+    <path d="M372 233h11v12h-11z" fill="none" stroke="#d7def5" stroke-width="2"/>
+    <rect x="408" y="228" width="247" height="9" rx="4.5" fill="#aec8d4"/>
+    <rect x="408" y="243" width="115" height="6" rx="3" fill="#507185"/>
+    <circle cx="1019" cy="239" r="12" fill="#15554f"/>
+    <path d="m1013 239 4 4 8-9" fill="none" stroke="#72e1d4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
