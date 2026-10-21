@@ -59,4 +59,4 @@ sequenceDiagram
     end
 ```
 
-The test patches only the tray availability report; [`MainWindow`](../../shortcut_studio/ui/window.py) and [`TrayController`](../../shortcut_studio/ui/tray.py) still execute their real close and restore logic. The packaged resource check is a separate test of `_app_icon_path()` and ICO size entries. The worker tests wait for Qt signal delivery and verify [`WorkflowController`](../../shortcut_studio/ui/workflow.py) releases the worker and runs batch checks in sequence.
+The test patches only the tray availability report; [`MainWindow`](../../shortcut_studio/ui/window.py) and [`TrayController`](../../shortcut_studio/ui/tray.py) still execute their real close and restore logic. The packaged resource check tests `_app_icon_path()` for the `shortcut_studio/assets` bundle and ICO size entries. The worker tests wait for Qt signal delivery and verify [`WorkflowController`](../../shortcut_studio/ui/workflow.py) releases the worker and runs batch checks in sequence.

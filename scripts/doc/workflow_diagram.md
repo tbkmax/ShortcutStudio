@@ -14,7 +14,7 @@ classDiagram
     CArchiveReader ..> EXE : inspects built archive
 ```
 
-[`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) constructs PyInstaller's `Analysis`, `PYZ`, and `EXE` objects. [`verify_build.py`](../verify_build.py) uses `CArchiveReader` to inspect the resulting EXE. The PowerShell script itself defines no classes.
+[`Shortcut Studio.spec`](../Shortcut%20Studio.spec) constructs PyInstaller's `Analysis`, `PYZ`, and `EXE` objects. [`verify_build.py`](../verify_build.py) uses `CArchiveReader` to inspect the resulting EXE. The PowerShell script itself defines no classes.
 
 ## Build Sequence
 

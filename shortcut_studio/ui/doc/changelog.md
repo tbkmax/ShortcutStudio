@@ -8,6 +8,9 @@ All notable changes to the `shortcut_studio.ui` module are documented in this fi
 
 ### Changed
 
+#### 2026-10-21 - Packaged Icon Location
+- [`window.py`](../window.py) now locates the icon under the installed `shortcut_studio/assets/` package, including PyInstaller's extraction directory.
+
 #### 2026-10-20 - Separate Tray and Workflow Coordination
 - Moved notification-area icon, menu, hide/restore, and first-hide hint behavior into [`TrayController`](../tray.py).
 - Moved scan worker ownership, batch-check state, completion handling, and bounded worker cancellation into [`WorkflowController`](../workflow.py).
@@ -32,8 +35,8 @@ All notable changes to the `shortcut_studio.ui` module are documented in this fi
 ### Added
 
 #### 2026-10-20 - Scalable Application Icon
-- Added [`icon.svg`](../../../assest/icon.svg) as the editable game launcher artwork and replaced [`icon.ico`](../../../assest/icon.ico) with seven rendered sizes for Windows.
-- Updated [`Shortcut Studio.spec`](../../../Shortcut%20Studio.spec) to embed the ICO in the EXE and bundle it for Qt at runtime; [`scripts/build.ps1`](../../../scripts/build.ps1) verifies the archive.
+- Added [`icon.svg`](../../assets/icon.svg) as the editable game launcher artwork and replaced [`icon.ico`](../../assets/icon.ico) with seven rendered sizes for Windows.
+- Updated [`Shortcut Studio.spec`](../../../scripts/Shortcut%20Studio.spec) to embed the ICO in the EXE and bundle it for Qt at runtime; [`scripts/build.ps1`](../../../scripts/build.ps1) verifies the archive.
 
 #### 2026-10-19 - Module Documentation Directory
 - Created UI subpackage documentation directory (`shortcut_studio/ui/doc/`) adhering to engineering templates.
@@ -60,4 +63,4 @@ All notable changes to the `shortcut_studio.ui` module are documented in this fi
 
 ## Migration and Upgrade Notes
 
-Use a rebuilt EXE to receive the new icon and bundled tray resource. No database migration is required.
+Rebuild the EXE for the package asset location. No database migration is required.

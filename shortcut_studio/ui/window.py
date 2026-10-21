@@ -83,8 +83,10 @@ EDGE_BOTTOM = 8
 
 def _app_icon_path() -> Path:
     """Locate the runtime icon in source and PyInstaller one-file builds."""
-    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))
-    return base / "assest" / "icon.ico"
+    package_root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+    if hasattr(sys, "_MEIPASS"):
+        package_root /= "shortcut_studio"
+    return package_root / "assets" / "icon.ico"
 
 
 class MainWindow(QMainWindow):

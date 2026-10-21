@@ -6,7 +6,7 @@ Shortcut Studio is a desktop application for Windows that organizes and automate
 
 ## 1. System Overview & Boundaries
 
-- **Target OS & Runtime**: Windows 10/11 (`nt`), Python 3.12+ (PyQt6 6.9+).
+- **Target OS & Runtime**: Windows 10/11 (`nt`), Python 3.11+ (PyQt6 6.7+).
 - **Execution Mode**: Local desktop client; operates entirely offline with no external network dependencies.
 - **Persistence Boundary**: Local SQLite database stored by default at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
 - **System Integration**:
@@ -14,8 +14,8 @@ Shortcut Studio is a desktop application for Windows that organizes and automate
   - Windows file launching via `os.startfile`.
   - Native Windows file icons via `PyQt6.QtWidgets.QFileIconProvider`.
   - System tray integration via `PyQt6.QtWidgets.QSystemTrayIcon` supporting close-to-tray when available, left-click restoration, and right-click exit context menu.
-  - Scalable icon source (`assest/icon.svg`) with a multi-resolution ICO bundled into the PyInstaller EXE and as runtime data for the window and tray.
-  - [`scripts/build.ps1`](../../scripts/build.ps1) builds the EXE with a controlled Windows/virtual-environment `PATH` so third-party ICU DLLs do not replace the system ICU used by Qt.
+  - Scalable icon source (`shortcut_studio/assets/icon.svg`) and a multi-resolution ICO bundled as package data and PyInstaller runtime data.
+  - [`scripts/build.ps1`](../../scripts/build.ps1) builds the EXE from [`scripts/Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) with a controlled Windows/virtual-environment `PATH` so third-party ICU DLLs do not replace the system ICU used by Qt.
   - Frameless custom window framing (`FramelessWindowHint`, `WA_TranslucentBackground`) with 12px rounded corners adhering to `DESIGN.md`.
 
 ---
@@ -27,6 +27,7 @@ Shortcut Studio is organized into three specialized domain subpackages alongside
 ```
 shortcut_studio/
 ├── __init__.py           # Package version and domain model exports
+├── assets/               # Packaged icon resources
 ├── app.py                # Backward-compatible presentation facade
 ├── database.py           # Backward-compatible storage facade
 ├── models.py             # Shared dataclasses and enums
@@ -96,8 +97,9 @@ shortcut_studio/
 | **UI Presentation** | [`ui/window.py`](../ui/window.py) | Coordinates navigation across 10 pages, renders themes, and handles window lifecycle. | `MainWindow`, `main()` |
 | **Tray Integration** | [`ui/tray.py`](../ui/tray.py) | Owns the tray icon, menu, and hide/restore actions. | `TrayController` |
 | **Workflow Coordination** | [`ui/workflow.py`](../ui/workflow.py) | Owns the active `ScanWorker`, batch queue, completion totals, and bounded cancellation. | `WorkflowController` |
-| **Application Icon** | [`../assest/icon.svg`](../../assest/icon.svg), [`../assest/icon.ico`](../../assest/icon.ico) | Source artwork and multi-resolution Windows icon used by the EXE, window, and tray. | `_app_icon_path()` in `ui/window.py` |
-| **Windows Build** | [`../scripts/build.ps1`](../../scripts/build.ps1) | Builds and verifies the one-file EXE from the checked-in spec. | `PyInstaller`, `CArchiveReader` |
+| **Application Icon** | [`assets/icon.svg`](../assets/icon.svg), [`assets/icon.ico`](../assets/icon.ico) | Package resources and multi-resolution Windows icon used by the EXE, window, and tray. | `_app_icon_path()` in `ui/window.py` |
+| **Python Packaging** | [`pyproject.toml`](../../pyproject.toml) | Declares runtime dependencies, package data, and the `shortcut-studio` command. | `setuptools` |
+| **Windows Build** | [`../scripts/build.ps1`](../../scripts/build.ps1), [`Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) | Builds and verifies the one-file EXE. | `PyInstaller`, `CArchiveReader` |
 
 ---
 

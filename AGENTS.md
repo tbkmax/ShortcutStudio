@@ -17,8 +17,9 @@ ShortcutStudio/
 ├── AGENTS.md                                # This operating manual
 ├── README.md                                # User-facing setup & usage
 ├── About.txt                                # Product vision & roadmap (MAINTAINED MANUALLY BY REPO OWNER)
-├── requirements.txt                         # Runtime dependencies
+├── pyproject.toml                           # Package metadata, dependencies, and CLI entry point
 ├── run.py                                   # Entrypoint script
+├── scripts/                                 # PyInstaller spec, build and verification scripts
 │
 ├── templates/doc/                           # Master templates for all documentation
 │   ├── architecture.md
@@ -28,6 +29,7 @@ ShortcutStudio/
 │
 ├── shortcut_studio/                         # Primary application package
 │   ├── __init__.py                          # Version and core type re-exports
+│   ├── assets/                              # Package icons for source, wheel, and EXE runs
 │   ├── models.py                            # Shared dataclasses and enums
 │   ├── scanner.py                           # Filesystem inspection utilities
 │   ├── app.py                               # Facade: re-exports MainWindow, main()

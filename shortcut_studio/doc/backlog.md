@@ -14,10 +14,20 @@ This backlog records prioritized engineering tasks, architectural milestones, an
 
 ## High Priority
 
+### - [x] FIX-3: Modern Python Packaging and Resource Layout
+
+- **Problem or opportunity**: Dependency installation relied on `requirements.txt`, while application icons and the build spec were scattered at the repository root.
+- **Desired outcome**: Installable `pyproject.toml` project with icons inside the package and build files together in `scripts/`.
+- **Scope**: `pyproject.toml`, `shortcut_studio/assets/`, `shortcut_studio/ui/window.py`, `scripts/`, `README.md`, `tests/test_core.py`.
+- **Acceptance criteria**: (1) `pip install .` installs PyQt6 and the CLI entry point. (2) Built package includes the icon. (3) PyInstaller bundles the same icon. (4) Public facades and tests pass.
+- **Dependencies and risks**: Existing development environments should reinstall the project; deployed EXEs need rebuilding to receive the new resource layout.
+- **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`; `.\scripts\build.ps1`; inspect built wheel.
+- **Priority**: High (completed 2026-10-21; packaging consistency and reliable icon lookup).
+
 ### - [x] Restore Packaged Tray Visibility
 - **Problem or opportunity**: The packaged EXE did not include a runtime copy of the tray icon, so closing could leave the app unreachable.
 - **Desired outcome**: A new scalable icon appears on the EXE and in the tray; Close repairs a missing icon or quits when no tray exists.
-- **Scope**: `assest/icon.svg`, `assest/icon.ico`, `Shortcut Studio.spec`, `scripts/build.ps1`, `shortcut_studio/ui/window.py`, `tests/test_core.py`.
+- **Scope**: `shortcut_studio/assets/icon.svg`, `shortcut_studio/assets/icon.ico`, `scripts/Shortcut Studio.spec`, `scripts/build.ps1`, `shortcut_studio/ui/window.py`, `tests/test_core.py`.
 - **Acceptance criteria**: (1) Seven ICO sizes are readable by Qt. (2) The spec bundles the ICO for runtime. (3) Close recovers a missing tray icon and hides with a usable tray. (4) Close quits when no tray exists.
 - **Dependencies and risks**: Existing packaged builds need to be rebuilt.
 - **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`; `.\scripts\build.ps1`; console startup probe.

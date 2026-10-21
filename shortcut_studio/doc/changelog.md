@@ -8,9 +8,12 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 ### Added
 
+#### 2026-10-21 - Python Project Metadata
+- Added [`pyproject.toml`](../../pyproject.toml) with setuptools packaging, PyQt6 runtime requirements, bundled icon assets, and a `shortcut-studio` GUI command.
+
 #### 2026-10-20 - Scalable Game Launcher Icon
-- Added vector source [`icon.svg`](../../assest/icon.svg) and replaced [`icon.ico`](../../assest/icon.ico) with seven sizes from 16 to 256 pixels, matching the game launcher direction in `About.txt`.
-- [`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) includes the ICO as runtime data for the app window and notification area. [`scripts/build.ps1`](../../scripts/build.ps1) is the supported build entry point and verifies the packaged resource.
+- Added vector source [`icon.svg`](../assets/icon.svg) and replaced [`icon.ico`](../assets/icon.ico) with seven sizes from 16 to 256 pixels, matching the game launcher direction in `About.txt`.
+- [`Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) includes the ICO as runtime data for the app window and notification area. [`scripts/build.ps1`](../../scripts/build.ps1) is the supported build entry point and verifies the packaged resource.
 
 #### 2026-10-19 - FIX-2 Window Behavior & Frameless Rounded Theme
 - Transformed [`MainWindow`](../ui/window.py) into a frameless window (`FramelessWindowHint` with `WindowMinimizeButtonHint`, `WindowMaximizeButtonHint`, `WindowSystemMenuHint`) with translucent background (`WA_TranslucentBackground`) and smooth 12px rounded corner styling across all 4 sides adhering to [`DESIGN.md`](./DESIGN.md).
@@ -51,6 +54,11 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 ### Changed
 
+#### 2026-10-21 - FIX-3 Project Layout
+- Moved application icons to [`shortcut_studio/assets/`](../assets/) so source runs, installed packages, and frozen builds use one resource location.
+- Moved the PyInstaller spec to [`scripts/Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) beside the build command; updated the spec, archive verification, and UI icon lookup to match.
+- Replaced `requirements.txt` installation instructions with `pyproject.toml` installation.
+
 #### 2026-10-20 - UI Lifecycle Controllers
 - Extracted [`TrayController`](../ui/tray.py) and [`WorkflowController`](../ui/workflow.py) from `MainWindow` to own notification-area behavior and scan worker lifetimes respectively. [`MainWindow`](../ui/window.py) remains the page host and Qt window-event handler.
 
@@ -69,10 +77,10 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 #### 2026-10-20 - Packaged QtCore Startup Failure
 - The build previously copied an incompatible `icuuc.dll` from another tool on `PATH`; the packaged app failed before its main window opened. [`scripts/build.ps1`](../../scripts/build.ps1) now uses a controlled `PATH` and rejects EXEs that bundle that DLL.
-- Removed `build.txt` and made the repository [`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) the sole build definition.
+- Removed `build.txt` and made [`Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) the sole build definition.
 
 ---
 
 ## Migration and Upgrade Notes
 
-Use a rebuilt EXE to receive the new icon and bundled tray resource. No database migration is required; existing configuration databases, exported JSON backups, and public module import paths remain compatible.
+Run `py -m pip install .` for Python installs or rebuild with `.\scripts\build.ps1` for the new resource location. No database migration is required; existing configuration databases, exported JSON backups, and public module import paths remain compatible.

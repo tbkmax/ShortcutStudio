@@ -83,7 +83,7 @@ classDiagram
 ```
 
 ### Explanation
-`MainWindow` hosts pages and Qt window events. `TrayController` owns the notification-area icon and determines whether the window can safely hide. `WorkflowController` owns worker lifetimes and batch state. `_app_icon_path()` locates the bundled ICO for the window and tray; the normal minimize button uses `showMinimized()`.
+`MainWindow` hosts pages and Qt window events. `TrayController` owns the notification-area icon and determines whether the window can safely hide. `WorkflowController` owns worker lifetimes and batch state. `_app_icon_path()` locates `shortcut_studio/assets/icon.ico` in source, installed packages, and frozen builds; the normal minimize button uses `showMinimized()`.
 
 ---
 

@@ -4,6 +4,9 @@
 
 ### Added
 
+#### 2026-10-21 - Build Definition in Scripts
+- Moved [`Shortcut Studio.spec`](../Shortcut%20Studio.spec) into `scripts/` and updated [`build.ps1`](../build.ps1) to use it.
+
 #### 2026-10-20 - Module Documentation Directory
 - Created `scripts/doc/` with architecture, workflow, changelog, and backlog files following the repository templates.
 
@@ -17,9 +20,12 @@
 
 ### Fixed
 
+#### 2026-10-21 - Packaged Icon Resource
+- Updated [`Shortcut Studio.spec`](../Shortcut%20Studio.spec) and [`verify_build.py`](../verify_build.py) to bundle and check `shortcut_studio/assets/icon.ico`.
+
 #### 2026-10-20 - PowerShell Archive Verification
 - Moved the Python archive check from an inline `-c` argument into [`verify_build.py`](../verify_build.py), preserving its checks while avoiding PowerShell quote and backslash mangling.
 
 ## Migration and Upgrade Notes
 
-Run `.\scripts\build.ps1` to produce a new EXE. No database migration is required.
+Install `.[build]` in `.venv` and run `.\scripts\build.ps1` to produce a new EXE. No database migration is required.

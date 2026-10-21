@@ -38,21 +38,22 @@ Starting a new run with an already-saved source/target pair automatically perfor
 Open PowerShell in this folder and run:
 
 ```powershell
-py -m pip install -r requirements.txt
+py -m pip install .
 py run.py
 ```
 
 If your Python command is `python` instead of `py`, substitute `python` in both commands.
+The installed package also provides a `shortcut-studio` GUI command.
 
 The database is stored at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
 
 ## Build the Windows EXE
 
-The editable app icon is [`assest/icon.svg`](assest/icon.svg). Its multi-size Windows export is [`assest/icon.ico`](assest/icon.ico). Build through [`scripts/build.ps1`](scripts/build.ps1), which uses the checked-in spec, bundles the icon for the window and tray, and prevents unrelated tools on `PATH` from supplying incompatible Qt libraries.
+The editable app icon is [`shortcut_studio/assets/icon.svg`](shortcut_studio/assets/icon.svg). Its multi-size Windows export is [`shortcut_studio/assets/icon.ico`](shortcut_studio/assets/icon.ico). Build through [`scripts/build.ps1`](scripts/build.ps1), which uses [`scripts/Shortcut Studio.spec`](scripts/Shortcut%20Studio.spec), bundles the icon for the window and tray, and prevents unrelated tools on `PATH` from supplying incompatible Qt libraries.
 
 ```powershell
 py -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt pyinstaller
+.\.venv\Scripts\python.exe -m pip install '.[build]'
 .\scripts\build.ps1
 ```
 

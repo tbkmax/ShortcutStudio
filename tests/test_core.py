@@ -439,7 +439,7 @@ class MainWindowTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             with patch.object(sys, "_MEIPASS", temporary, create=True):
                 self.assertEqual(
-                    _app_icon_path(), Path(temporary) / "assest" / "icon.ico"
+                    _app_icon_path(), Path(temporary) / "shortcut_studio" / "assets" / "icon.ico"
                 )
 
 if __name__ == "__main__":

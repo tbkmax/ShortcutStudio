@@ -14,7 +14,7 @@ The `tests` directory contains the `unittest` suite for scanning, shortcut handl
 
 ## Ownership and Boundaries
 
-Each test creates its own temporary filesystem or database fixture. `MainWindowTests.setUpClass()` owns a `QApplication` instance for widget tests. Tray availability is patched through `shortcut_studio.ui.tray` in the hide/close tests so their result does not depend on the host notification area. Workflow tests pump Qt events until the worker completes, covering signal delivery and sequential batch execution. The packaged icon test checks source ICO sizes and the `_MEIPASS` path rule; the PyInstaller build is checked separately.
+Each test creates its own temporary filesystem or database fixture. `MainWindowTests.setUpClass()` owns a `QApplication` instance for widget tests. Tray availability is patched through `shortcut_studio.ui.tray` in the hide/close tests so their result does not depend on the host notification area. Workflow tests pump Qt events until the worker completes, covering signal delivery and sequential batch execution. The packaged icon test checks source ICO sizes and the `_MEIPASS/shortcut_studio/assets` path rule; the PyInstaller build is checked separately.
 
 ## Invariants and Safeguards
 

@@ -1,6 +1,6 @@
 # Build Script Architecture
 
-The `scripts` folder owns the repeatable Windows EXE build entry point. [`build.ps1`](../build.ps1) invokes the repository [`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) with the local virtual environment, then runs [`verify_build.py`](../verify_build.py) to inspect the resulting one-file archive.
+The `scripts` folder owns the repeatable Windows EXE build entry point. [`build.ps1`](../build.ps1) invokes [`Shortcut Studio.spec`](../Shortcut%20Studio.spec) with the local virtual environment, then runs [`verify_build.py`](../verify_build.py) to inspect the resulting one-file archive.
 
 ## Component Inventory
 
@@ -8,8 +8,8 @@ The `scripts` folder owns the repeatable Windows EXE build entry point. [`build.
 | :--- | :--- | :--- | :--- |
 | Build command | [`build.ps1`](../build.ps1) | Selects the project environment, runs PyInstaller, and calls archive verification. | `.venv\Scripts\python.exe`, `PyInstaller` |
 | Archive verification | [`verify_build.py`](../verify_build.py) | Confirms the runtime icon is present and the conflicting ICU DLL is absent. | `CArchiveReader`, `main` |
-| Build definition | [`Shortcut Studio.spec`](../../Shortcut%20Studio.spec) | Declares application entrypoint, bundled ICO, windowed EXE, and Windows icon. | `Analysis`, `PYZ`, `EXE` |
-| Runtime icon | [`icon.ico`](../../assest/icon.ico) | Supplies the EXE icon and the runtime window/tray icon. | `assest/icon.ico` archive entry |
+| Build definition | [`Shortcut Studio.spec`](../Shortcut%20Studio.spec) | Declares application entrypoint, bundled ICO, windowed EXE, and Windows icon. | `Analysis`, `PYZ`, `EXE` |
+| Runtime icon | [`icon.ico`](../../shortcut_studio/assets/icon.ico) | Supplies the EXE icon and the runtime window/tray icon. | `shortcut_studio/assets/icon.ico` archive entry |
 
 ## Ownership and Boundaries
 
@@ -18,7 +18,7 @@ The `scripts` folder owns the repeatable Windows EXE build entry point. [`build.
 ## Invariants and Safeguards
 
 - Build only from the repository spec, so the runtime ICO remains included.
-- The archive check requires `assest/icon.ico` and rejects a bundled `icuuc.dll`; Windows supplies the compatible ICU forwarder used by this Qt build.
+- The archive check requires `shortcut_studio/assets/icon.ico` and rejects a bundled `icuuc.dll`; Windows supplies the compatible ICU forwarder used by this Qt build.
 - A failed PyInstaller process or archive check exits with an error instead of reporting success.
 - Building changes only generated artifacts, not the user's SQLite database or game libraries.
 

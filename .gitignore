@@ -1,4 +1,5 @@
 __pycache__/
+*.egg-info/
 *.py[cod]
 .pytest_cache/
 *.db
@@ -13,5 +14,5 @@ About.txt
 build/
 dist/
 build.txt
-!Shortcut Studio.spec
+!scripts/Shortcut Studio.spec
 .pyinstaller-build/

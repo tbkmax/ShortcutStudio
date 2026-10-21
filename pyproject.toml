@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shortcut-studio"
+version = "1.0.0"
+description = "Offline Windows desktop utility for managing application shortcuts"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["PyQt6>=6.7,<7"]
+classifiers = [
+    "Environment :: Win32 (MS Windows)",
+    "Framework :: PyQt",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+build = ["pyinstaller>=6,<7"]
+
+[project.gui-scripts]
+shortcut-studio = "shortcut_studio.app:main"
+
+[tool.setuptools.packages.find]
+include = ["shortcut_studio*"]
+exclude = ["shortcut_studio*.doc*"]
+
+[tool.setuptools.package-data]
+shortcut_studio = ["assets/*.ico", "assets/*.svg", "assets/*.png"]

@@ -6,5 +6,5 @@
 - [x] remove the Window's own minimize, resize, close button with custom one, and add the roundness in the 4 side of window, follow DESIGN.md in doc folder
 
 #### FIX-3: fix folder structure
-- [ ] use pyproject.toml rather than requirements.txt
-- [ ] restructure the folder to look more clean and like moreen python project
+- [x] use pyproject.toml rather than requirements.txt
+- [x] restructure the folder to look more clean and like moreen python project

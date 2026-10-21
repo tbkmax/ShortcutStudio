@@ -1,11 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+
+project_root = Path(SPECPATH).resolve().parent
+icon = project_root / 'shortcut_studio' / 'assets' / 'icon.ico'
 
 a = Analysis(
-    ['run.py'],
-    pathex=[],
+    [str(project_root / 'run.py')],
+    pathex=[str(project_root)],
     binaries=[],
-    datas=[('assest/icon.ico', 'assest')],
+    datas=[(str(icon), 'shortcut_studio/assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,5 +40,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assest/icon.ico'],
+    icon=[str(icon)],
 )

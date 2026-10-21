@@ -15,6 +15,9 @@
 
 ### Changed
 
+#### 2026-10-21 - Package Icon Test Path
+- Updated [`test_core.py`](../test_core.py) to assert the PyInstaller icon location under `shortcut_studio/assets/`.
+
 #### 2026-10-20 - Tray Controller Patch Target
 - Tray availability tests now patch [`shortcut_studio.ui.tray`](../../shortcut_studio/ui/tray.py), which owns the system tray check after the controller extraction.
 

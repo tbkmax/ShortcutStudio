@@ -8,7 +8,7 @@ from PyInstaller.archive.readers import CArchiveReader
 def main(executable: str) -> None:
     archive = CArchiveReader(executable)
     entries = {name.replace("/", "\\").lower() for name in archive.toc}
-    if "assest\\icon.ico" not in entries:
+    if "shortcut_studio\\assets\\icon.ico" not in entries:
         raise SystemExit("Build is missing the runtime tray icon")
     if "icuuc.dll" in entries:
         raise SystemExit(
