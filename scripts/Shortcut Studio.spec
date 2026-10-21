@@ -7,7 +7,7 @@ project_root = Path(SPECPATH).resolve().parent
 icon = project_root / 'shortcut_studio' / 'assets' / 'icon.ico'
 
 a = Analysis(
-    [str(project_root / 'run.py')],
+    [str(project_root / 'shortcut_studio' / '__main__.py')],
     pathex=[str(project_root)],
     binaries=[],
     datas=[(str(icon), 'shortcut_studio/assets')],

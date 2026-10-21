@@ -47,8 +47,8 @@ classDiagram
         -Database database
         -int pair_id
         -bool check_only
-        -Condition condition
-        -bool cancelled
+        -Condition _condition
+        -bool _cancelled
         +choose(executable)
         +cancel()
         +run()
@@ -92,7 +92,7 @@ classDiagram
         +str error
     }
 
-    MainWindow "1" *-- "1" Database : manages
+    MainWindow "1" o-- "1" Database : receives or creates for legacy callers
     MainWindow "1" *-- "1" TrayController : owns
     MainWindow "1" *-- "1" WorkflowController : owns
     WorkflowController "1" o-- "0..1" ScanWorker : runs
@@ -106,6 +106,9 @@ classDiagram
 ### Explanation
 - [`MainWindow`](../ui/window.py) hosts the pages and Qt window events. [`WorkflowController`](../ui/workflow.py) manages the optional active [`ScanWorker`](../core/worker.py) thread; [`TrayController`](../ui/tray.py) owns the tray icon and hide/restore behavior. `_hide_to_tray()` delegates to the tray controller and returns false when Windows has no notification area; `closeEvent()` then quits.
 - The worker executes asynchronously and reports progress via Qt signals without locking the GUI.
+- Library editing, executable selection, settings/backups, and resize interaction
+  are delegated to dedicated UI controllers; their state and call sequences are
+  documented in the [UI workflow guide](../ui/doc/workflow_diagram.md).
 - [`FolderPair`](../models.py), [`PairItem`](../models.py), and [`FolderResult`](../models.py) are immutable value dataclasses that flow between storage, execution, and presentation.
 
 ---
@@ -176,8 +179,8 @@ erDiagram
         int id PK
         text source_folder
         text target_folder
-        text source_key UK
-        text target_key UK
+        text source_key
+        text target_key
         text created_at
         text last_checked_at
     }
@@ -185,7 +188,7 @@ erDiagram
         int id PK
         int pair_id FK
         text folder_path
-        text folder_key UK
+        text folder_key
         text executable_path
         text shortcut_path
         text updated_at
@@ -219,6 +222,8 @@ erDiagram
 - `FOLDER_PAIRS` and `PAIR_ITEMS`: Durable records of configured library pairs and their chosen application launch configurations. Managed via [`PairRepository`](../storage/repository.py).
 - `RUNS` and `FOLDER_RESULTS`: Audit trail logging every execution, duration, and per-folder status outcome. Managed via [`RunRepository`](../storage/repository.py).
 - `SETTINGS`: Key-value application configuration store (e.g. `open_target_after_completion`, `confirm_pair_deletion`). Managed via [`SettingsRepository`](../storage/repository.py).
+- Uniqueness is composite: `(source_key, target_key)` for folder pairs and
+  `(pair_id, folder_key)` for pair items; individual key columns are not unique.
 
 ---
 
@@ -251,4 +256,31 @@ stateDiagram-v2
 - Discovered folders start as `Queued` and enter `Scanning` when picked up by the worker loop.
 - If in check mode and the destination already points to the valid executable, it reaches `UpToDate`.
 - Ambiguous targets branch to `NeedsChoice` until the user confirms or cancels.
-- Terminal states (`Created`, `UpToDate`, `Removed`, `NoExecutable`, `Failed`, `Cancelled`) map directly to [`ResultStatus`](../models.py) enum values.
+- Terminal outcome labels correspond to [`ResultStatus`](../models.py) values.
+  The diagram's queued/scanning/choice states are conceptual UI states, not enum
+  members. Cancellation stops the worker loop; it does not persist a CANCELLED
+  result for every unprocessed folder.
+
+## 5. Application Assembly
+
+```mermaid
+sequenceDiagram
+    participant Entry as __main__.py / GUI command / EXE
+    participant Boot as bootstrap.main
+    participant Paths as paths.py
+    participant Qt as QApplication
+    participant DB as Database
+    participant Window as MainWindow
+    Entry->>Boot: main()
+    Boot->>Qt: configure application
+    Boot->>Paths: app_icon_path(), default_database_path()
+    Boot->>DB: Database(path)
+    Boot->>Window: MainWindow(database=database)
+    Window->>Window: build pages and controllers
+    Boot->>Window: show()
+    Boot->>Qt: exec()
+    Qt-->>Entry: exit code through bootstrap
+```
+
+[`bootstrap.py`](../bootstrap.py) owns process startup. The window receives the
+database and owns its UI controllers. Legacy UI entry points delegate to bootstrap.

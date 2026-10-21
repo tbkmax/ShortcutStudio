@@ -54,6 +54,26 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 
 ### Changed
 
+#### 2026-10-21 - Window Responsibility Split
+- [MainWindow](../ui/window.py) now composes dedicated library, selection,
+  settings, and frameless controllers alongside workflow/tray controllers.
+- See the [UI architecture](../ui/doc/architecture.md) for local ownership and
+  interfaces. Public application imports and existing page callbacks remain valid.
+
+#### 2026-10-21 - Package Startup and Scoped Architecture
+- Added [bootstrap.py](../bootstrap.py), [paths.py](../paths.py), and the package
+  [launcher](../__main__.py). Startup injects Database into MainWindow while legacy
+  facade imports and path-based construction remain available.
+- Removed root `run.py`; use `python -m shortcut_studio` or the installed GUI command.
+  PyInstaller now starts the package launcher.
+- [pyproject.toml](../../pyproject.toml) discovers explicit packages and points the
+  GUI command at bootstrap.
+- Added local engineering documentation for core, storage, components, and pages.
+  [AGENTS.md](../../AGENTS.md) now reserves root `doc/` for user documentation and
+  requires each code folder's architecture to guide changes in that folder.
+- Added startup/dependency regression tests and installed-wheel verification.
+
+
 #### 2026-10-21 - FIX-3 Project Layout
 - Moved application icons to [`shortcut_studio/assets/`](../assets/) so source runs, installed packages, and frozen builds use one resource location.
 - Moved the PyInstaller spec to [`scripts/Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) beside the build command; updated the spec, archive verification, and UI icon lookup to match.
@@ -84,3 +104,5 @@ All notable changes to the Shortcut Studio codebase are documented in this file.
 ## Migration and Upgrade Notes
 
 Run `py -m pip install .` for Python installs or rebuild with `.\scripts\build.ps1` for the new resource location. No database migration is required; existing configuration databases, exported JSON backups, and public module import paths remain compatible.
+
+No database migration is required. Reinstall the package or rebuild the EXE. Replace any external `python run.py` command with `python -m shortcut_studio`.

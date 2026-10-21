@@ -8,6 +8,24 @@ All notable changes to the `shortcut_studio.ui` module are documented in this fi
 
 ### Changed
 
+#### 2026-10-21 - Focused Window Controllers
+- Extracted [library.py](../library.py), [selection.py](../selection.py),
+  [settings.py](../settings.py), and [frameless.py](../frameless.py).
+- Controllers own their edit, choice, and resize state; MainWindow retains page
+  assembly, navigation, progress rendering, lifecycle, and callback forwarding.
+- Reused the existing path-field factory and removed its unreachable alternative
+  and duplicate construction code from the window.
+- Added behavior tests for editing, failure preservation, deletion confirmation,
+  workflow/edit cancellation, JSON backup, and Qt resize event delivery.
+
+#### 2026-10-21 - Injected Database and Startup Boundary
+- [MainWindow](../window.py) accepts a keyword-only Database dependency and shares
+  it with WorkflowController. Supplying both instance and path raises ValueError.
+- Default-path and icon policy moved to [paths.py](../../paths.py); the old
+  `_app_icon_path` alias remains. Qt startup moved to [bootstrap.py](../../bootstrap.py).
+- Legacy UI entry points forward to bootstrap; page/tray behavior is unchanged.
+
+
 #### 2026-10-21 - Packaged Icon Location
 - [`window.py`](../window.py) now locates the icon under the installed `shortcut_studio/assets/` package, including PyInstaller's extraction directory.
 
@@ -64,3 +82,5 @@ All notable changes to the `shortcut_studio.ui` module are documented in this fi
 ## Migration and Upgrade Notes
 
 Rebuild the EXE for the package asset location. No database migration is required.
+
+No database migration is required. Reinstall the package or rebuild the EXE. Replace any external `python run.py` command with `python -m shortcut_studio`.

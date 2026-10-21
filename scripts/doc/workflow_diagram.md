@@ -42,3 +42,25 @@ sequenceDiagram
 ```
 
 The script performs the same verification after every build. The `finally` block restores the caller's `PATH` whether the build succeeds or fails.
+
+## Installed Wheel Sequence
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant Verify as verify_wheel.py
+    participant Pip as pip
+    participant Probe as Isolated Python process
+    Dev->>Verify: local wheel path
+    Verify->>Pip: install --no-index --no-deps --target temporary/installed
+    Verify->>Probe: -I, temporary cwd, QT_QPA_PLATFORM=offscreen
+    Probe->>Probe: verify package origin, imports, GUI command, icon
+    Probe->>Probe: bootstrap.main(database_path=temporary DB)
+    Probe->>Probe: QTimer exits real Qt event loop
+    Probe-->>Verify: success or nonzero exit
+    Verify->>Verify: clean temporary installation
+```
+
+The verifier defines functions rather than new classes. It exercises the real
+installed application's QApplication and MainWindow types, with only event-loop
+duration controlled. The EXE build uses the same package `__main__.py` launcher.

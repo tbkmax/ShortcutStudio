@@ -1,142 +1,93 @@
-# Architecture Specification: Shortcut Studio
+# Package Architecture: Shortcut Studio
 
-Shortcut Studio is a desktop application for Windows that organizes and automates the creation, verification, and maintenance of application shortcut libraries. Given a root source directory containing individual application folders, Shortcut Studio scans for launch targets (`.exe` or `.exe.lnk`), disambiguates multiple candidates interactively or via saved choices, and creates native Windows shortcuts in a designated target directory using the Windows COM ShellLink API.
+Shortcut Studio is an offline Windows 10/11 desktop application using Python
+3.11+, PyQt6, SQLite, and Windows ShellLink COM. The flat installable package keeps
+application code under `shortcut_studio/`; there is no root Python launcher.
+This guide describes this folder's modules and boundaries. Detailed architecture
+belongs to each child folder's own `doc/`.
 
----
+## Local Module Inventory
 
-## 1. System Overview & Boundaries
-
-- **Target OS & Runtime**: Windows 10/11 (`nt`), Python 3.11+ (PyQt6 6.7+).
-- **Execution Mode**: Local desktop client; operates entirely offline with no external network dependencies.
-- **Persistence Boundary**: Local SQLite database stored by default at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
-- **System Integration**:
-  - Windows Shell Link COM Interface (`IShellLinkW`, `IPersistFile`) invoked directly via `ctypes.windll.ole32`.
-  - Windows file launching via `os.startfile`.
-  - Native Windows file icons via `PyQt6.QtWidgets.QFileIconProvider`.
-  - System tray integration via `PyQt6.QtWidgets.QSystemTrayIcon` supporting close-to-tray when available, left-click restoration, and right-click exit context menu.
-  - Scalable icon source (`shortcut_studio/assets/icon.svg`) and a multi-resolution ICO bundled as package data and PyInstaller runtime data.
-  - [`scripts/build.ps1`](../../scripts/build.ps1) builds the EXE from [`scripts/Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) with a controlled Windows/virtual-environment `PATH` so third-party ICU DLLs do not replace the system ICU used by Qt.
-  - Frameless custom window framing (`FramelessWindowHint`, `WA_TranslucentBackground`) with 12px rounded corners adhering to `DESIGN.md`.
-
----
-
-## 2. Package Architecture & Component Organization
-
-Shortcut Studio is organized into three specialized domain subpackages alongside root compatibility facades:
-
-```
-shortcut_studio/
-├── __init__.py           # Package version and domain model exports
-├── assets/               # Packaged icon resources
-├── app.py                # Backward-compatible presentation facade
-├── database.py           # Backward-compatible storage facade
-├── models.py             # Shared dataclasses and enums
-├── scanner.py            # Filesystem directory inspection utilities
-├── shortcuts.py          # Backward-compatible COM shortcut creation facade
-├── worker.py             # Backward-compatible concurrency facade
-│
-├── core/                 # Concurrency and OS platform integration
-│   ├── __init__.py
-│   ├── shell_link.py     # Native Windows COM ShellLink interface & path sanitization
-│   └── worker.py         # Background ScanWorker (QThread) synchronization engine
-│
-├── storage/              # Persistence layer
-│   ├── __init__.py
-│   ├── connection.py     # SQLite connection provider and path canonicalization
-│   ├── schema.py         # DDL table creation and migration scripts
-│   ├── repository.py     # Repositories for pairs, items, runs, and settings
-│   ├── backup.py         # JSON export and import services
-│   └── database.py       # Unified Database facade wrapping repositories
-│
-├── ui/                   # Presentation and user interface
-│   ├── __init__.py
-│   ├── theme.py          # Color constants and dark QSS stylesheet
-│   ├── window.py         # MainWindow page host & main() entry point
-│   ├── tray.py           # Notification-area icon and visibility controller
-│   ├── workflow.py       # Scan worker and batch-check controller
-│   ├── components/       # Reusable UI widgets and element factories
-│   │   ├── __init__.py
-│   │   ├── folder_row.py # FolderRow frame with status pill
-│   │   ├── header.py     # Top navigation bar
-│   │   ├── cards.py      # Action, pair, and item card renderers
-│   │   └── widgets.py    # Common typography and input builders
-│   └── pages/            # 10 modular application page builders
-│       ├── __init__.py
-│       ├── home_page.py
-│       ├── setup_page.py
-│       ├── check_page.py
-│       ├── list_page.py
-│       ├── edit_page.py
-│       ├── edit_detail_page.py
-│       ├── settings_page.py
-│       ├── progress_page.py
-│       ├── choice_page.py
-│       └── done_page.py
-│
-└── doc/                  # Package-level documentation
-    ├── architecture.md
-    ├── workflow_diagram.md
-    ├── changelog.md
-    └── backlog.md
-```
-
-> [!NOTE]
-> Each subpackage (`core/`, `storage/`, `ui/`) is designed to host its own focused documentation in future iterations. This document serves as the high-level system architectural blueprint.
-
----
-
-## 3. Component Inventory & Responsibilities
-
-| Subsystem | Primary Source Link | Responsibility | Key Interfaces |
+| Component | File Link | Responsibility | Key Interfaces |
 | :--- | :--- | :--- | :--- |
-| **Domain Models** | [`models.py`](../models.py) | Defines pure value types, status enums, and dataclasses. | `FolderPair`, `PairItem`, `FolderResult`, `ResultStatus` |
-| **Scanner** | [`scanner.py`](../scanner.py) | Discovers folders and `.exe` / `.exe.lnk` files recursively. | `source_folders()`, `find_executables()` |
-| **Platform COM** | [`core/shell_link.py`](../core/shell_link.py) | Interacts with Windows COM to create `.lnk` shortcuts and sanitizes filenames. | `install_launch_item()`, `create_shortcut()`, `safe_shortcut_name()` |
-| **Worker Engine** | [`core/worker.py`](../core/worker.py) | Background `QThread` executing scanning, sync, and condition-variable pause. | `ScanWorker`, `choose()`, `cancel()` |
-| **Storage Engine** | [`storage/database.py`](../storage/database.py) | Manages SQLite connection, schema DDL, repository operations, and JSON backups. | `Database`, `PairRepository`, `RunRepository`, `SettingsRepository` |
-| **UI Presentation** | [`ui/window.py`](../ui/window.py) | Coordinates navigation across 10 pages, renders themes, and handles window lifecycle. | `MainWindow`, `main()` |
-| **Tray Integration** | [`ui/tray.py`](../ui/tray.py) | Owns the tray icon, menu, and hide/restore actions. | `TrayController` |
-| **Workflow Coordination** | [`ui/workflow.py`](../ui/workflow.py) | Owns the active `ScanWorker`, batch queue, completion totals, and bounded cancellation. | `WorkflowController` |
-| **Application Icon** | [`assets/icon.svg`](../assets/icon.svg), [`assets/icon.ico`](../assets/icon.ico) | Package resources and multi-resolution Windows icon used by the EXE, window, and tray. | `_app_icon_path()` in `ui/window.py` |
-| **Python Packaging** | [`pyproject.toml`](../../pyproject.toml) | Declares runtime dependencies, package data, and the `shortcut-studio` command. | `setuptools` |
-| **Windows Build** | [`../scripts/build.ps1`](../../scripts/build.ps1), [`Shortcut Studio.spec`](../../scripts/Shortcut%20Studio.spec) | Builds and verifies the one-file EXE. | `PyInstaller`, `CArchiveReader` |
+| Package exports | [__init__.py](../__init__.py) | Version and immutable model exports; no application construction | `__version__`, model types |
+| Package launcher | [__main__.py](../__main__.py) | Invoke bootstrap for `python -m shortcut_studio` and PyInstaller | `main()` |
+| Bootstrap | [bootstrap.py](../bootstrap.py) | Configure Qt, assemble dependencies, show window, run event loop | `main(argv=None, *, database_path=None)` |
+| Path policy | [paths.py](../paths.py) | Resolve database and icon paths without writing files | `default_database_path()`, `app_icon_path()` |
+| Models | [models.py](../models.py) | Immutable, slotted records and result enum | `FolderPair`, `PairItem`, `FolderResult`, `ResultStatus` |
+| Scanner | [scanner.py](../scanner.py) | List immediate source folders and recursively find launch candidates | `source_folders()`, `find_executables()` |
+| UI compatibility facade | [app.py](../app.py) | Preserve legacy window, entry point, widget, and theme imports | `MainWindow`, `main`, `FolderRow` |
+| Storage compatibility facade | [database.py](../database.py) | Preserve persistence imports | `Database`, `DEFAULT_SETTINGS` |
+| Shortcut compatibility facade | [shortcuts.py](../shortcuts.py) | Preserve native shortcut utility imports | `create_shortcut()`, `install_launch_item()`, `shortcut_path()`, `safe_shortcut_name()` |
+| Worker compatibility facade | [worker.py](../worker.py) | Preserve worker import | `ScanWorker` |
 
----
+## Child Package Boundaries
 
-## 4. Runtime & Data Flows
+| Folder | Local Architecture | Owned Responsibility |
+| :--- | :--- | :--- |
+| `core/` | [Core architecture](../core/doc/architecture.md) | Qt background execution and Windows COM adapter |
+| `storage/` | [Storage architecture](../storage/doc/architecture.md) | Connections, schema, repositories, JSON backup |
+| `ui/` | [UI architecture](../ui/doc/architecture.md) | Window/page coordination, tray, workflow controller, theme |
+| `assets/` | [icon.svg](../assets/icon.svg), [icon.ico](../assets/icon.ico) | Installed artwork and multi-resolution runtime icon; no Python code |
 
-1. **Setup & Scan Initiation**:
-   - The user selects `source_folder` and `target_folder` on [`setup_page.py`](../ui/pages/setup_page.py).
-   - [`WorkflowController`](../ui/workflow.py) queries or registers the pair with [`Database.get_or_create_pair()`](../storage/database.py).
-   - The controller starts an asynchronous [`ScanWorker`](../core/worker.py) thread and moves the UI to the processing view.
+Use each child's inventory to locate its implementation; do not maintain a second
+copy of its detailed architecture here.
 
-2. **Folder Processing & Candidate Disambiguation**:
-   - For each subfolder discovered by [`source_folders()`](../scanner.py), the worker invokes [`find_executables()`](../scanner.py).
-   - If a single executable is found, it is automatically selected.
-   - If multiple candidates are found and no saved choice exists, `ScanWorker` emits `choice_required` and pauses using `threading.Condition.wait_for()`.
-   - The UI displays [`choice_page.py`](../ui/pages/choice_page.py). The user selects an option, and [`MainWindow._submit_choice()`](../ui/window.py) calls the active worker's `choose()`, which notifies the condition variable and resumes processing.
+## Ownership and Dependency Direction
 
-3. **Shortcut Creation & Recording**:
-   - The worker invokes [`install_launch_item()`](../core/shell_link.py) to generate or copy the `.lnk` file into `target_folder`.
-   - Persistence updates are executed: [`save_pair_item()`](../storage/repository.py) and [`save_result()`](../storage/repository.py).
-   - The folder row status is emitted to update [`FolderRow`](../ui/components/folder_row.py) in real time.
+Bootstrap owns QApplication configuration and the event loop. It constructs a
+Database using the explicit or default path, passes it to
+`MainWindow(database=database)`, shows the window, and returns Qt's exit code.
+MainWindow owns its UI controllers; the workflow controller owns its active worker.
+Library editing, executable choice, settings/backups, and frameless interaction
+have dedicated state owners described in the [UI architecture](../ui/doc/architecture.md).
+The window and controller share the injected database facade, while storage opens
+and closes a separate connection for each operation.
 
-4. **Maintenance ("Check") Workflow**:
-   - Compares existing shortcuts against source directories.
-   - Validates that previously configured launch items remain intact.
-   - Identifies stale items whose source folders were deleted and cleans up shortcuts that strictly reside inside `target_folder`.
+Models, scanner, paths, and storage do not import Qt. Core is an execution layer
+that uses QtCore and Windows COM, not a framework-free domain layer. Lower
+layers must not import UI or bootstrap. Architecture tests guard those import
+boundaries. The compatibility `ui.window.main()` wrapper imports bootstrap only
+when called to avoid an import cycle.
 
----
+## Local Runtime Flows
 
-## 5. Invariants & Security Boundaries
+1. `python -m shortcut_studio`, the installed `shortcut-studio` GUI command, and
+   the EXE converge on `bootstrap.main()`.
+2. `default_database_path()` uses LOCALAPPDATA, or
+   `Path.home()/AppData/Local` when missing or empty, then appends
+   `ShortcutStudio/shortcut_studio.db`.
+3. `app_icon_path()` resolves assets beside the installed/source module, or under
+   `sys._MEIPASS/shortcut_studio/assets` in a PyInstaller bundle.
+4. The window delegates scans to its workflow controller. The worker calls scanner
+   functions and uses model values to report outcomes. See the child guides for
+   worker sequencing, transactions, and UI transitions.
 
-1. **Target Confinement Safeguard**:
-   - Before deleting any obsolete shortcut file during a check or sync, the application verifies `item.shortcut.resolve() == expected_shortcut.resolve()`. No files outside `target_folder` can ever be deleted.
-2. **Path Normalization Invariant**:
-   - Folder paths are indexed using `os.path.normcase(os.path.abspath(path))` (`_path_key`) to prevent duplicate records on case-insensitive Windows filesystems.
-3. **Database Concurrency & Foreign Keys**:
-   - Every SQLite connection explicitly enables `PRAGMA foreign_keys = ON` to enforce cascade deletion of runs, results, and pair items.
-4. **Tray Visibility Safeguard**:
-   - `TrayController` restores a missing tray icon before hiding on close. If no system tray exists, Close quits cleanly instead of leaving an unresponsive window.
-5. **Graceful Thread Shutdown**:
-   - `MainWindow.closeEvent` calls `WorkflowController.stop_for_shutdown()`, which invokes `worker.cancel()` and performs a bounded wait (`worker.wait(3000)`) during active processing.
+## Invariants and Compatibility
+
+- Package import exports models/version without constructing Qt or opening a DB.
+- Path lookup has no filesystem-write side effects and is independent of cwd.
+- `source_folders()` returns immediate directories sorted case-insensitively.
+  `find_executables()` searches for `.exe` and `.exe.lnk` candidates with
+  `os.walk(..., followlinks=False)`.
+- Public facade imports remain supported. Legacy
+  `MainWindow(database_path=...)` construction remains supported; supplying both
+  a database path and instance raises ValueError.
+- Default user-data location, schema, shortcut processing, and cooperative worker
+  cancellation are unchanged by the migration.
+- Root `doc/` is reserved for user-facing documents. Engineering architecture is
+  kept here and in the corresponding code folders. Plans link to these guides.
+
+## Distribution and Verification
+
+[pyproject.toml](../../pyproject.toml) declares the GUI entry point, explicit
+Python packages, and icon package data. The
+[PyInstaller spec](../../scripts/Shortcut%20Studio.spec) starts the package's
+`__main__.py`. See [scripts architecture](../../scripts/doc/architecture.md)
+for build and installed-wheel checks, and [test architecture](../../tests/doc/architecture.md)
+for regression coverage. Reinstall the package or rebuild the EXE to distribute
+changes; callers of the removed `run.py` should use `python -m shortcut_studio`.
+
+The [review and migration plan](../../plan/ARCHITECTURE.md) records why the flat
+layout was retained. Page builders still use window callbacks, which explicitly
+delegate to the owning controllers; release automation remains a tracked improvement.

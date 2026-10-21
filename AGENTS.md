@@ -18,7 +18,7 @@ ShortcutStudio/
 ├── README.md                                # User-facing setup & usage
 ├── About.txt                                # Product vision & roadmap (MAINTAINED MANUALLY BY REPO OWNER)
 ├── pyproject.toml                           # Package metadata, dependencies, and CLI entry point
-├── run.py                                   # Entrypoint script
+├── doc/                                     # User-facing guides and reference documents (no engineering templates)
 ├── scripts/                                 # PyInstaller spec, build and verification scripts
 │
 ├── templates/doc/                           # Master templates for all documentation
@@ -29,6 +29,9 @@ ShortcutStudio/
 │
 ├── shortcut_studio/                         # Primary application package
 │   ├── __init__.py                          # Version and core type re-exports
+│   ├── __main__.py                          # Package and PyInstaller launcher
+│   ├── bootstrap.py                         # Qt startup and dependency assembly
+│   ├── paths.py                             # Database and resource path policy
 │   ├── assets/                              # Package icons for source, wheel, and EXE runs
 │   ├── models.py                            # Shared dataclasses and enums
 │   ├── scanner.py                           # Filesystem inspection utilities
@@ -71,10 +74,33 @@ ShortcutStudio/
 
 ---
 
-## 2. The Golden Rule: Hierarchical Documentation (`doc/` in Every Code Folder)
+## 2. The Golden Rule: Hierarchical Module Documentation
+
+### Purpose and Root Documentation Exception
+Module-level `doc/` folders give agents and developers a fast, complete understanding
+of the affected code before changing implementation details. Read the relevant
+architecture, workflows, and backlog first so changes respect existing ownership,
+interfaces, and safeguards.
+
+Keep the authoritative architecture for a code folder in **that folder's
+`doc/architecture.md`**. It must explain the files directly owned by that folder,
+their responsibilities, interfaces, and relationships so readers can locate and
+change the correct implementation. Parent architecture documents summarize child
+package boundaries and link to each child's local guide; they do not duplicate
+the child's detailed architecture. Plans may reference these documents but must
+not become a second source of architectural truth.
+
+The repository-root `doc/` folder is reserved for **user-facing documentation**, such
+as usage guides and reference documents. It is **exempt** from the four-file
+engineering-template rule. Do not populate root `doc/` with template-based
+`architecture.md`, `workflow_diagram.md`, `changelog.md`, or `backlog.md` files.
+Keep application Python code inside `shortcut_studio/`; launch with
+`python -m shortcut_studio` rather than adding a root launcher. Use
+`shortcut_studio/doc/` for system-level engineering documentation, and `plan/`
+for implementation plans.
 
 ### Mandatory Folder Structure Rule
-> **Every single code folder in this repository—including submodules, subpackages, and nested component folders—MUST maintain its own dedicated `doc/` directory.**
+> **Every code folder below the repository root—including submodules, subpackages, scripts, tests, and nested component folders—MUST maintain its own dedicated engineering `doc/` directory. The repository root is exempt as described above.**
 
 ```
 <code_directory>/
@@ -94,7 +120,7 @@ Documentation is scoped hierarchically to avoid monolithic, unmaintainable docum
 4. **Test Suite Level (`tests/doc/`)**: Testing architecture, mock strategies, headless testing guidelines.
 
 > [!IMPORTANT]
-> If you create a **new code folder or submodule**, you **MUST** immediately create its `doc/` folder populated from `templates/doc/`. Creating the `doc/` folder itself must be recorded as an `[Added]` entry in that module's `changelog.md`.
+> If you create a **new code folder or submodule below the repository root**, you **MUST** immediately create its `doc/` folder populated from `templates/doc/`. Creating the `doc/` folder itself must be recorded as an `[Added]` entry in that module's `changelog.md`. Do not apply these templates to the user-facing root `doc/` folder.
 
 ---
 
@@ -104,7 +130,8 @@ The directory [`templates/doc/`](file:///c:/Users/max99/Desktop/myProgram/Shortc
 
 ### 3.1 Initializing a New `doc/` Directory from Templates
 
-When adding documentation to a folder:
+When adding engineering documentation to a code folder below the repository root
+(not the user-facing root `doc/` folder):
 1. Copy the 4 template files from [`templates/doc/`](file:///c:/Users/max99/Desktop/myProgram/ShortcutStudio/templates/doc/) into the module's `doc/` folder:
    - `architecture.md`
    - `workflow_diagram.md`
@@ -193,7 +220,7 @@ When tasked with a bug fix, feature addition, or refactor, **DO NOT run broad gr
 
 ```mermaid
 flowchart TD
-    Task["User Request / Task"] --> Step1["1. Read Root doc/architecture.md\nIdentify owning package (Core, Storage, UI)"]
+    Task["User Request / Task"] --> Step1["1. Read shortcut_studio/doc/architecture.md\nIdentify owning package (Core, Storage, UI)"]
     Step1 --> Step2["2. Navigate to Submodule doc/\n(e.g., storage/doc/architecture.md)"]
     Step2 --> Step3["3. Inspect Component Inventory Table\nFind exact source files & interfaces"]
     Step3 --> Step4["4. Review doc/workflow_diagram.md & backlog.md\nUnderstand sequence, state, and acceptance criteria"]

@@ -22,11 +22,12 @@ classifiers = [
 build = ["pyinstaller>=6,<7"]
 
 [project.gui-scripts]
-shortcut-studio = "shortcut_studio.app:main"
+shortcut-studio = "shortcut_studio.bootstrap:main"
 
 [tool.setuptools.packages.find]
 include = ["shortcut_studio*"]
 exclude = ["shortcut_studio*.doc*"]
+namespaces = false
 
 [tool.setuptools.package-data]
 shortcut_studio = ["assets/*.ico", "assets/*.svg", "assets/*.png"]

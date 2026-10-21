@@ -18,7 +18,8 @@ from shortcut_studio.ui.theme import (
     SURFACE_ELEVATED,
     WHITE,
 )
-from shortcut_studio.ui.window import MainWindow, main
+from shortcut_studio.bootstrap import main
+from shortcut_studio.ui.window import MainWindow
 
 __all__ = [
     "MainWindow",

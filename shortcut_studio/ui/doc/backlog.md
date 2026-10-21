@@ -6,6 +6,18 @@ This backlog tracks prioritized improvements, enhancements, and technical debt s
 
 ## High Priority
 
+### - [x] Separate startup from window presentation
+
+- **Title**: Separate startup from window presentation.
+- **Problem or opportunity**: Window module configured QApplication and default storage paths.
+- **Desired outcome**: Normal startup injects the shared database and the window retains UI responsibilities.
+- **Scope**: ui/window.py, bootstrap.py, paths.py, test_bootstrap.py.
+- **Acceptance criteria**: 1. Injected database reaches WorkflowController. 2. Legacy path construction works. 3. Conflicting inputs raise ValueError. 4. Tray/workflow tests pass.
+- **Dependencies and risks**: Preserve UI callbacks, shared database lifetime, and bounded cancellation.
+- **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`; `.venv\Scripts\python.exe scripts/verify_wheel.py dist/shortcut_studio-1.0.0-py3-none-any.whl`; `.\scripts\build.ps1`.
+- **Priority**: High; completed 2026-10-21 to clarify ownership and guard releases.
+
+
 ### - [x] Package a Visible Tray Icon and Guard Close-to-Tray
 - **Completed**: 2026-10-20
 - **Problem or opportunity**: The EXE icon was compiled into the executable but absent as a runtime file, leaving Qt without a usable tray icon after close.
@@ -23,6 +35,18 @@ This backlog tracks prioritized improvements, enhancements, and technical debt s
 ---
 
 ## Medium Priority
+
+### - [x] Isolate Library Editing Operations from the Window
+
+- **Title**: Isolate library editing in a focused UI controller.
+- **Completed**: 2026-10-21. LibraryController owns edit operations and the current pair; SelectionController owns candidate state. Settings and frameless interaction also have separate controllers.
+- **Problem or opportunity**: MainWindow still combines editing actions, persistence calls, and widget refreshes; pages share its attributes and callbacks.
+- **Desired outcome**: Editing operations can be tested independently while the window handles user interaction and presentation.
+- **Scope**: ui/window.py, ui/library.py, ui/selection.py, ui/settings.py, ui/frameless.py, tests/test_ui_controllers.py. Page builders and storage APIs remain compatible.
+- **Acceptance criteria**: 1. Launch-target changes have focused behavior tests. 2. Persistence/shortcut failures retain existing user-visible handling. 3. Page callbacks and target-confinement safeguards remain compatible.
+- **Dependencies and risks**: Identify a concrete operation boundary before adding a controller; preserve existing saved-pair and shortcut semantics.
+- **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`, plus focused edit-operation tests.
+- **Priority**: Medium; completed to localize changes and test the moved behaviors.
 
 ### - [x] Separate Window Tray and Workflow Responsibilities
 

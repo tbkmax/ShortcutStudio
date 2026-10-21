@@ -14,6 +14,18 @@ This backlog records prioritized engineering tasks, architectural milestones, an
 
 ## High Priority
 
+### - [x] Separate startup and verify installed distributions
+
+- **Title**: Separate startup and verify installed distributions.
+- **Problem or opportunity**: Window presentation also owned process startup and path policy; source tests alone could hide distribution errors.
+- **Desired outcome**: Package-owned launch, explicit startup assembly, preserved imports, and verified installed resources.
+- **Scope**: bootstrap.py, paths.py, __main__.py, app.py, ui/window.py, pyproject.toml, scripts, tests, local docs.
+- **Acceptance criteria**: 1. Package and GUI entry points converge on bootstrap. 2. Database injection preserves legacy callers. 3. Full tests, installed-wheel smoke test, and EXE archive checks pass.
+- **Dependencies and risks**: Reinstall or rebuild to distribute changes; scripts using run.py must switch to package launch.
+- **Verification**: `.venv\Scripts\python.exe -m unittest discover -s tests -v`; `.venv\Scripts\python.exe scripts/verify_wheel.py dist/shortcut_studio-1.0.0-py3-none-any.whl`; `.\scripts\build.ps1`.
+- **Priority**: High; completed 2026-10-21 to clarify ownership and guard releases.
+
+
 ### - [x] FIX-3: Modern Python Packaging and Resource Layout
 
 - **Problem or opportunity**: Dependency installation relied on `requirements.txt`, while application icons and the build spec were scattered at the repository root.
@@ -46,12 +58,14 @@ This backlog records prioritized engineering tasks, architectural milestones, an
 - **Verification**: `python -m unittest discover -s tests -v` (16/16 tests pass).
 - **Priority**: High (Completed on 2026-10-19).
 
-### - [ ] Implement Submodule Documentation Suites (`storage/doc/`, `core/doc/`)
-- **Problem or opportunity**: Shortcut Studio has been refactored into modular subpackages (`storage`, `core`, `ui`). The package-level documentation in `shortcut_studio/doc/` provides the high-level system view; `ui/doc/` has been implemented, while `storage/doc/` and `core/doc/` remain pending.
+### - [x] Implement Submodule Documentation Suites (`storage/doc/`, `core/doc/`)
+- **Completed**: 2026-10-21. Added all four documents for core, storage, UI components, and UI pages. Each architecture guide owns its folder's details and links to related guides.
+- **Problem or opportunity**: Core, storage, components, and pages lacked local engineering guides for locating and understanding implementation before edits.
 - **Desired outcome**: Dedicated `doc/` directories inside `shortcut_studio/storage/doc/` and `shortcut_studio/core/doc/`.
 - **Scope**:
-  - `shortcut_studio/storage/doc/` (`architecture.md`, `changelog.md`)
-  - `shortcut_studio/core/doc/` (`architecture.md`, `changelog.md`)
+  - `shortcut_studio/storage/doc/` (all four engineering documents)
+  - `shortcut_studio/core/doc/` (all four engineering documents)
+  - `shortcut_studio/ui/components/doc/` and `shortcut_studio/ui/pages/doc/` (all four engineering documents)
   - Note: `shortcut_studio/ui/doc/` completed.
 - **Acceptance criteria**:
   1. Each subpackage contains a targeted `doc/` folder adhering to engineering templates.
@@ -65,6 +79,28 @@ This backlog records prioritized engineering tasks, architectural milestones, an
 ---
 
 ## Medium Priority
+
+### - [ ] Automate Windows Release Verification
+
+- **Title**: Run source, wheel, and EXE checks in release CI.
+- **Problem or opportunity**: Local verification does not establish coverage across the declared Python 3.11+ support range.
+- **Desired outcome**: A Windows CI job runs tests and distribution checks for supported release interpreters.
+- **Scope**: CI configuration, pyproject.toml, scripts/verify_wheel.py, scripts/build.ps1.
+- **Acceptance criteria**: 1. Python 3.11 and the current release interpreter run the test suite. 2. The built wheel is tested outside the checkout. 3. An EXE build runs archive verification and is retained as an artifact.
+- **Dependencies and risks**: Requires a CI provider decision; pin release tooling without changing runtime compatibility.
+- **Verification**: Successful Windows CI runs of the unittest, wheel verifier, and EXE build commands.
+- **Priority**: Medium; release confidence across versions, moderate setup effort.
+
+### - [ ] Present Startup Failures in the Windowed Application
+
+- **Title**: Add actionable startup error reporting.
+- **Problem or opportunity**: Bootstrap database initialization errors currently propagate; the GUI entry point may have no console for users to inspect.
+- **Desired outcome**: Users see a useful error and diagnostic location when startup cannot initialize storage.
+- **Scope**: bootstrap.py and tests/test_bootstrap.py.
+- **Acceptance criteria**: 1. An unwritable database path gives a clear error. 2. Startup exits nonzero. 3. Failed startup does not launch workers or overwrite user data.
+- **Dependencies and risks**: Choose a fallback diagnostic location that also works when LOCALAPPDATA is unavailable; avoid recursive error reporting.
+- **Verification**: Add subprocess tests for an unavailable database location and normal startup.
+- **Priority**: Medium; operational usability beyond the completed structural migration.
 
 ### - [ ] Add Custom Arguments and Working Directory Overrides to Shortcut Items
 - **Problem or opportunity**: Certain complex Windows executables (e.g. launchers or portable games) require specific command-line arguments or custom working directories rather than defaulting to the executable's parent folder.

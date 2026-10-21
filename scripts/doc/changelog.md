@@ -4,6 +4,12 @@
 
 ### Added
 
+#### 2026-10-21 - Installed Wheel Verification
+- [verify_wheel.py](../verify_wheel.py) installs a local wheel into a disposable
+  directory and verifies imports, GUI entry point, resources, window construction,
+  and the real Qt event loop outside the checkout.
+
+
 #### 2026-10-21 - Build Definition in Scripts
 - Moved [`Shortcut Studio.spec`](../Shortcut%20Studio.spec) into `scripts/` and updated [`build.ps1`](../build.ps1) to use it.
 
@@ -26,6 +32,13 @@
 #### 2026-10-20 - PowerShell Archive Verification
 - Moved the Python archive check from an inline `-c` argument into [`verify_build.py`](../verify_build.py), preserving its checks while avoiding PowerShell quote and backslash mangling.
 
+### Changed
+
+#### 2026-10-21 - Package-Owned Executable Launcher
+- [Shortcut Studio.spec](../Shortcut%20Studio.spec) starts
+  `shortcut_studio/__main__.py`; root `run.py` is no longer needed.
+
 ## Migration and Upgrade Notes
 
-Install `.[build]` in `.venv` and run `.\scripts\build.ps1` to produce a new EXE. No database migration is required.
+Install `.[build]` in `.venv` and run `.\scripts\build.ps1` to produce a new EXE
+using the package launcher. No database or user-data migration is required.

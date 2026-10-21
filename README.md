@@ -25,10 +25,10 @@ Requires **Windows 10/11** and **Python 3.11+**. In PowerShell, from the reposit
 
 ```powershell
 py -m pip install .
-py run.py
+py -m shortcut_studio
 ```
 
-The installed package also provides a `shortcut-studio` GUI command. Your database is stored at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
+The installed package also provides a `shortcut-studio` GUI command. Both launch methods use the same application bootstrap. Your database is stored at `%LOCALAPPDATA%\ShortcutStudio\shortcut_studio.db`.
 
 ## Build the EXE
 
@@ -45,3 +45,29 @@ The build produces `dist\Shortcut Studio.exe`. The icon source is [`shortcut_stu
 ```powershell
 py -m unittest discover -s tests -v
 ```
+
+## Development and architecture
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e '.[build]'
+.\.venv\Scripts\python.exe -m shortcut_studio
+```
+
+The flat package layout keeps application code inside `shortcut_studio/`.
+`__main__.py` is the package and PyInstaller launcher. `bootstrap.py` assembles
+Qt and the database; `paths.py` owns filesystem locations; `ui/`, `core/`, and
+`storage/` own presentation, scan/platform execution, and persistence. See the
+[architecture review and plan](plan/ARCHITECTURE.md) and
+[package architecture](shortcut_studio/doc/architecture.md).
+
+Verify a wheel outside the checkout as well as running source tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip wheel --no-deps --no-build-isolation . --wheel-dir dist
+.\.venv\Scripts\python.exe scripts/verify_wheel.py dist/shortcut_studio-1.0.0-py3-none-any.whl
+```
+
+The verifier uses the environment's installed PyQt6, installs the local wheel in
+a disposable directory without network access, and starts an offscreen window
+and event loop. Reinstall the package or rebuild the EXE after code changes.

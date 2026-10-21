@@ -14,6 +14,10 @@ classDiagram
         +Database database
         +WorkflowController workflow
         +TrayController tray
+        +LibraryController library
+        +SelectionController selection
+        +SettingsController settings
+        +FramelessController chrome
         +HeaderBar header_widget
         +QStackedWidget pages
         +QPushButton min_button
@@ -27,17 +31,12 @@ classDiagram
         +_toggle_maximize()
         +_quit_application()
         +_determine_edge(pos) int
-        +eventFilter(obj, event) bool
         +changeEvent(event)
         +closeEvent(event)
     }
 
     class HeaderBar {
         +MainWindow window
-        +QLabel brand
-        +QPushButton min_btn
-        +QPushButton max_btn
-        +QPushButton close_btn
         +mousePressEvent(event)
         +mouseMoveEvent(event)
         +mouseReleaseEvent(event)
@@ -45,10 +44,9 @@ classDiagram
     }
 
     class FolderRow {
-        +Path folder_path
         +QLabel name_label
-        +QLabel status_pill
-        +update_status(status)
+        +QLabel status_label
+        +set_status(text, color)
     }
 
     class QSystemTrayIcon {
@@ -75,15 +73,57 @@ classDiagram
         +stop_for_shutdown() bool
     }
 
+    class LibraryController {
+        +FolderPair current_pair
+        +edit_pair(pair)
+        +edit_item(pair_item)
+        +save_choice(folder, chosen)
+        +delete_pair(pair)
+    }
+    class SelectionController {
+        +Path folder
+        +list candidates
+        +str context
+        +show(raw_folder, raw_candidates, context)
+        +submit()
+        +cancel()
+    }
+    class SettingsController {
+        +Database database
+        +show()
+        +apply()
+        +export_data()
+        +import_data()
+    }
+    class FramelessController {
+        -int _resize_edge
+        -QRect _drag_start_geom
+        -QPoint _drag_start_pos
+        +determine_edge(pos) int
+        +eventFilter(obj, event) bool
+        +change_event(event)
+        +toggle_maximize()
+    }
+
     MainWindow *-- HeaderBar : embeds as top bar
+    MainWindow o-- Database : injected by bootstrap or legacy construction
     MainWindow *-- TrayController : owns
     MainWindow *-- WorkflowController : owns
+    MainWindow *-- LibraryController : owns
+    MainWindow *-- SelectionController : owns
+    MainWindow *-- SettingsController : owns
+    MainWindow *-- FramelessController : owns
     TrayController *-- QSystemTrayIcon : owns
     MainWindow ..> FolderRow : renders in progress & list pages
 ```
 
 ### Explanation
-`MainWindow` hosts pages and Qt window events. `TrayController` owns the notification-area icon and determines whether the window can safely hide. `WorkflowController` owns worker lifetimes and batch state. `_app_icon_path()` locates `shortcut_studio/assets/icon.ico` in source, installed packages, and frozen builds; the normal minimize button uses `showMinimized()`.
+`MainWindow` hosts pages and Qt window events. `TrayController` owns the notification-area icon and determines whether the window can safely hide. `WorkflowController` owns worker lifetimes and batch state. Path resolution is implemented in `paths.app_icon_path()` and exposed through the legacy `_app_icon_path` alias; the normal minimize button uses `showMinimized()`. Bootstrap supplies the database in normal startup; both the window and workflow controller refer to that same instance.
+
+LibraryController owns the edited pair; SelectionController owns candidate state;
+SettingsController owns preference/backup actions; FramelessController owns resize
+gestures. MainWindow keeps callback forwarding methods so page builders and worker
+connections do not need to know every controller.
 
 ---
 
@@ -162,3 +202,32 @@ sequenceDiagram
 
 ### Explanation
 The close action checks for a usable tray icon before hiding. Once hidden, a left-click restores the window; the right-click menu can shut down cleanly.
+
+## 4. Edit Selection Sequence
+
+```mermaid
+sequenceDiagram
+    participant UI as MainWindow callbacks
+    participant Library as LibraryController
+    participant Selection as SelectionController
+    participant Link as shell_link
+    participant DB as Database
+    UI->>Library: edit_pair(pair), edit_item(pair_item)
+    Library->>UI: _show_choice(folder, candidates, context="edit")
+    UI->>Selection: show(folder, candidates, context)
+    UI->>Selection: submit()
+    Selection->>UI: _save_edited_choice(chosen)
+    UI->>Library: save_choice(selection.folder, chosen)
+    Library->>Link: install_launch_item(chosen, destination)
+    alt Shortcut update succeeds
+        Library->>DB: save_pair_item(...), touch_pair(...)
+        Library->>Library: refresh_items()
+        Library->>UI: display edit_detail_page
+    else OSError
+        Library->>UI: error dialog; retain choice page
+    end
+```
+
+Only a successful shortcut write proceeds to updating the saved selection.
+Workflow choices instead call `ScanWorker.choose()`; canceling an edit returns to
+the detail page, while canceling a workflow delegates to WorkflowController.

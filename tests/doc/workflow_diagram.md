@@ -4,6 +4,30 @@
 
 ```mermaid
 classDiagram
+    class ControllerTests {
+        +setUp()
+        +dispose_window()
+        +test_edit_selection_updates_shortcut_and_saved_item()
+        +test_failed_edit_preserves_saved_choice_and_selection_page()
+        +test_settings_backup_round_trip_updates_controls()
+        +test_resize_filter_handles_drag_and_releases_gesture()
+    }
+    class PathTests {
+        +test_database_path_uses_local_app_data_without_creating_it()
+        +test_icon_location_is_independent_of_working_directory()
+    }
+    class BootstrapTests {
+        +test_startup_passes_database_to_window_and_returns_exit_code()
+        +test_launchers_propagate_exit_code()
+    }
+    class WindowDependencyTests {
+        +test_injected_database_is_shared_with_workflow()
+        +test_ambiguous_database_arguments_are_rejected()
+    }
+    class ArchitectureTests {
+        +test_lower_layers_do_not_import_presentation_or_startup()
+        +test_package_import_does_not_load_qt_or_storage()
+    }
     class ScannerTests {
         +test_finds_unicode_executables_recursively()
         +test_lists_immediate_folders_only()
@@ -34,7 +58,15 @@ classDiagram
     }
 ```
 
-These independent `unittest.TestCase` classes live in [`test_core.py`](../test_core.py). The diagram lists representative exact test methods; fixtures and additional tests remain in the same file.
+The existing behavior classes live in [`test_core.py`](../test_core.py); startup,
+path, and dependency tests live in [`test_bootstrap.py`](../test_bootstrap.py),
+and import-boundary tests in [`test_architecture.py`](../test_architecture.py).
+The diagram lists representative exact test methods.
+
+[`ControllerTests`](../test_ui_controllers.py) exercises the composed controllers
+through real window callbacks and widgets, using temporary files/database records
+and patched dialogs. The resize test delivers Qt events to the shell rather than
+calling the controller's drag calculation directly.
 
 ## Close-to-Tray Test Sequence
 
